@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - EV Stock Manager{% endblock %}
+
+{% block content %}
+<div class="header">
+    <div>
+        <h1>Welcome back, {{ request.user.username }}!</h1>
+        <p style="color: var(--text-muted); margin-top: 0.5rem;">Here's an overview of your shop today.</p>
+    </div>
+    {% if request.user.role == 'ADMIN' %}
+    <a href="{% url 'sales_list' %}" class="btn">+ View All Sales</a>
+    {% else %}
+    <a href="{% url 'add_sale' %}" class="btn">+ New Sale</a>
+    {% endif %}
+</div>
+
+<div class="grid">
+    <div class="card">
+        <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">New Leads</h3>
+        <div style="font-size: 2.5rem; font-weight: 700; margin: 1rem 0; color: var(--primary)">{{ new_leads|length }}
+        </div>
+        <p style="color: var(--success); font-size: 0.9rem;">Active potential customers</p>
+    </div>
+    <div class="card">
+        <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">Available Scooters Models
+        </h3>
+        <div style="font-size: 2.5rem; font-weight: 700; margin: 1rem 0; color: var(--primary)">{{ scooters|length }}
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">Track specifications & availability</p>
+    </div>
+    <div class="card">
+        <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">Recent Sales</h3>
+        <div style="font-size: 2.5rem; font-weight: 700; margin: 1rem 0; color: var(--primary)">{{ recent_sales|length }}</div>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">Completed transactions</p>
+    </div>
+</div>
+
+{% if request.user.role == 'ADMIN' %}
+<div class="card" style="margin-bottom: 2rem;">
+    <h2 style="margin-bottom: 1.5rem;">Sales Performance Overview</h2>
+    <div style="position: relative; height: 300px; width: 100%;">
+        <canvas id="salesChart"></canvas>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const ctx = document.getElementById('salesChart').getContext('2d');
+        const rawSalesData = "{% for s in recent_sales %}{{ s.total_amount|default:'0' }},{% endfor %}";
+        const salesData = rawSalesData.split(",").filter(x => x !== "").map(Number).reverse();
+
+    // Fallback if no sales
+    if (salesData.length === 0) {
+        salesData.push(0, 0, 0, 0);
+    }
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Sale 1', 'Sale 2', 'Sale 3', 'Sale 4', 'Sale 5'].slice(0, salesData.length),
+            datasets: [{
+                label: 'Revenue (₹)',
+                data: salesData,
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(148, 163, 184, 0.1)' } },
+                x: { grid: { display: false } }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+});
+</script>
+{% endif %}
+
+<div class="card">
+    <div class="header" style="margin-bottom: 1rem;">
+        <h2>Scooter Specifications</h2>
+        <a href="{% url 'inventory_list' %}" class="btn"
+            style="background: transparent; border: 1px solid var(--primary); color: var(--primary)">View Inventory</a>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Model Name</th>
+                <th>Range (km)</th>
+                <th>Power (Watts)</th>
+                <th>Charging Time (hrs)</th>
+                <th>Last Price</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for scooter in scooters %}
+            <tr>
+                <td style="font-weight: 600;">{{ scooter.name }}</td>
+                <td>{{ scooter.range_km }} km</td>
+                <td>{{ scooter.watts }} W</td>
+                <td>{{ scooter.charging_time }} h</td>
+                <td>₹{{ scooter.last_price }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted)">
+                    No scooter models available. Register some in the inventory.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

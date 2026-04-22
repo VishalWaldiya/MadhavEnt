@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Incoming Stock - EV Stock Manager{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+    <div class="header">
+        <h1>Add Incoming Stock</h1>
+    </div>
+    <form method="post" action="{% url 'add_stock_item' %}">
+        {% csrf_token %}
+        <div style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Item Type</label>
+            <select name="item_type" id="id_item_type" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                <option value="SCOOTER">Electric Scooter</option>
+                <option value="BATTERY">Battery</option>
+                <option value="CHARGER">Battery Charger</option>
+                <option value="SPARE">Spare Part</option>
+            </select>
+        </div>
+        <div style="margin-bottom: 1rem;" id="scooter_model_div">
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Scooter Model</label>
+            <select name="scooter_model" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                <option value="">-- Select Model (If applicable) --</option>
+                {% for model in scooters %}
+                <option value="{{ model.id }}">{{ model.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Name (For Spares/Accessories)</label>
+            <input type="text" name="name" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+        </div>
+        <div style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Serial Number / Chassis Number</label>
+            <input type="text" name="serial_number" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+        </div>
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Supplier Details</label>
+            <textarea name="supplier_details" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; resize: vertical; min-height: 80px;"></textarea>
+        </div>
+        <div>
+            <a href="{% url 'inventory_list' %}" class="btn" style="background: transparent; border: 1px solid var(--text-muted); color: var(--text-muted); margin-right: 1rem;">Cancel</a>
+            <button type="submit" class="btn">Add Stock Item</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

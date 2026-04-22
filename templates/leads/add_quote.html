@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}Generate Quote - EV Stock Manager{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+    <div class="header">
+        <h1>Generate Quote for {{ lead.customer_name }}</h1>
+    </div>
+    <form method="post" action="{% url 'add_quote' lead.id %}">
+        {% csrf_token %}
+        <div style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Scooter Model (Optional)</label>
+            <select name="scooter_model" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                <option value="">-- Select Model --</option>
+                {% for model in scooters %}
+                <option value="{{ model.id }}">{{ model.name }} (Last Price: ₹{{ model.last_price }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Battery (Optional)</label>
+            <select name="battery" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                <option value="">-- Select Battery --</option>
+                {% for b in batteries %}
+                <option value="{{ b.id }}">{{ b.name }} ({{ b.serial_number }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Charger (Optional)</label>
+            <select name="charger" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                <option value="">-- Select Charger --</option>
+                {% for c in chargers %}
+                <option value="{{ c.id }}">{{ c.name }} ({{ c.serial_number }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Item/Accessory Details (If not a standard item)</label>
+            <textarea name="item_details" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; resize: vertical; min-height: 80px;"></textarea>
+        </div>
+        <div style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Quoted Price (₹)</label>
+            <input type="number" step="0.01" name="quoted_price" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+        </div>
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Quote Valid Until</label>
+            <input type="date" name="valid_until" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+        </div>
+        <div>
+            <a href="{% url 'leads_list' %}" class="btn" style="background: transparent; border: 1px solid var(--text-muted); color: var(--text-muted); margin-right: 1rem;">Cancel</a>
+            <button type="submit" class="btn">Generate Quote</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

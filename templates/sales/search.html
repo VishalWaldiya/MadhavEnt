@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Asset Tracking - EV Stock Manager{% endblock %}
+
+{% block content %}
+<div class="header">
+    <div>
+        <h1>Asset Search & Tracking</h1>
+        <p style="color: var(--text-muted); margin-top: 0.5rem;">Search by asset serial number or chassis number.</p>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 2rem;">
+    <form method="get" action="{% url 'search_asset' %}" style="display: flex; gap: 1rem;">
+        <input type="text" name="q" placeholder="Enter Serial Number or Name..." value="{{ query|default:'' }}" required style="flex: 1; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+        <button type="submit" class="btn">Search Asset</button>
+    </form>
+</div>
+
+{% if query %}
+<div class="card">
+    {% if item %}
+        <h2 style="margin-bottom: 1rem; color: var(--success);">Item Found</h2>
+        <table style="margin-bottom: 2rem;">
+            <tbody>
+                <tr><th style="width: 200px;">Item Type</th><td style="background: transparent;">{{ item.get_item_type_display }}</td></tr>
+                <tr><th>Serial Number</th><td style="font-family: monospace;">{{ item.serial_number }}</td></tr>
+                <tr><th>Associated Model/Name</th><td>{% if item.scooter_model %}{{ item.scooter_model.name }}{% else %}{{ item.name }}{% endif %}</td></tr>
+                <tr><th>Current Status</th><td>{{ item.status }}</td></tr>
+                <tr><th>Purchase Date</th><td>{{ item.purchase_date }}</td></tr>
+            </tbody>
+        </table>
+
+        {% if sale %}
+        <h2 style="margin-bottom: 1rem; color: var(--primary);">Sale Details</h2>
+        <table>
+            <tbody>
+                <tr><th style="width: 200px;">Customer Name</th><td style="font-weight: 600;">{{ sale.customer_name }}</td></tr>
+                <tr><th>Customer Contact</th><td>{{ sale.customer_contact }}</td></tr>
+                <tr><th>Sale Date</th><td>{{ sale.sale_date }}</td></tr>
+                <tr><th>Financer</th><td>{{ sale.financer|default:"Cash / N/A" }}</td></tr>
+                <tr><th>Total Amount</th><td>₹{{ sale.total_amount }}</td></tr>
+                <tr><th>Link</th><td><a href="#" style="color: var(--primary);">View Full Invoice</a></td></tr>
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color: var(--text-muted);">This item has not been sold yet.</p>
+        {% endif %}
+    {% else %}
+        <p style="color: var(--danger); text-align: center; padding: 2rem;">No matching assets found for "{{ query }}".</p>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

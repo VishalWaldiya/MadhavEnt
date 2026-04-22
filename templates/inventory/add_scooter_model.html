@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Scooter Model - EV Stock Manager{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+    <div class="header">
+        <h1>Add New Scooter Model</h1>
+    </div>
+    <form method="post" action="{% url 'add_scooter_model' %}">
+        {% csrf_token %}
+        <div style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Model Name</label>
+            <input type="text" name="name" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+        </div>
+        <div style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Range (km)</label>
+            <input type="number" name="range_km" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+        </div>
+        <div style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Power (Watts)</label>
+            <input type="number" name="watts" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+        </div>
+        <div style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Charging Time (hours)</label>
+            <input type="number" step="0.1" name="charging_time" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+        </div>
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Showroom Price / Last Price (₹)</label>
+            <input type="number" step="0.01" name="last_price" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+        </div>
+        <div>
+            <a href="{% url 'inventory_list' %}" class="btn" style="background: transparent; border: 1px solid var(--text-muted); color: var(--text-muted); margin-right: 1rem;">Cancel</a>
+            <button type="submit" class="btn">Save Scooter Model</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

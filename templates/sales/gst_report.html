@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}GST filling details - EV Stock Manager{% endblock %}
+
+{% block content %}
+<div class="header">
+    <div>
+        <h1>GST & Financial Reports</h1>
+        <p style="color: var(--text-muted); margin-top: 0.5rem;">List of all sales containing a GST number for quick filing.</p>
+    </div>
+    <a href="#" class="btn" style="background: transparent; border: 1px solid var(--primary); color: var(--primary);">Export CSV</a>
+</div>
+
+<div class="grid" style="margin-bottom: 2rem;">
+    <div class="card">
+        <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">Total Taxable Amount</h3>
+        <div style="font-size: 2.5rem; font-weight: 700; margin: 1rem 0; color: var(--primary)">₹{{ total_taxable }}</div>
+    </div>
+    <div class="card">
+        <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">Total Sales (Inc. GST)</h3>
+        <div style="font-size: 2.5rem; font-weight: 700; margin: 1rem 0; color: var(--success)">₹{{ total_amount }}</div>
+    </div>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Customer</th>
+                <th>GST Number</th>
+                <th>Taxable Amt</th>
+                <th>Total Amt</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sale in sales %}
+            <tr>
+                <td>{{ sale.sale_date|date:"d M Y" }}</td>
+                <td style="font-weight: 600;">{{ sale.customer_name }}</td>
+                <td style="font-family: monospace;">{{ sale.gst_number }}</td>
+                <td>₹{{ sale.taxable_amount }}</td>
+                <td>₹{{ sale.total_amount }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted)">
+                    No GST sales recorded.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

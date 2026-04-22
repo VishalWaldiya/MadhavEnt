@@ -1,0 +1,211 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}EV Stock Manager{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-color: #0f172a;
+            --text-muted: #64748b;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
+            --danger: #ef4444;
+            --border-color: #e2e8f0;
+            --radius: 12px;
+        }
+        [data-theme="dark"] {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .sidebar {
+            width: 250px;
+            background: var(--card-bg);
+            padding: 2rem 1rem;
+            border-right: 1px solid var(--border-color);
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+        .sidebar h2 {
+            margin-bottom: 2rem;
+            color: var(--primary);
+            font-weight: 700;
+            text-align: center;
+        }
+        .sidebar a {
+            display: block;
+            color: var(--text-color);
+            text-decoration: none;
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius);
+            margin-bottom: 0.5rem;
+            transition: background 0.2s;
+        }
+        .sidebar a:hover {
+            background: var(--border-color);
+        }
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .top-navbar {
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--card-bg);
+        }
+        .content-area {
+            padding: 2rem;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            margin-bottom: 1.5rem;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1.25rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover { background: var(--primary-hover); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        th { color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.85rem; }
+        
+        input, select, textarea {
+            background: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+        
+        .theme-toggle {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        
+        .language-dropdown {
+            background: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem;
+            border-radius: 8px;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    {% if request.user.is_authenticated %}
+    <div class="sidebar">
+        <h2>EV Stock Admin</h2>
+        <a href="{% url 'dashboard' %}">{% trans "Dashboard" %}</a>
+        
+        {% if request.user.role == 'ADMIN' %}
+            <h4 style="margin: 1.5rem 0 0.5rem 1rem; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">{% trans "Admin Controls" %}</h4>
+            <a href="{% url 'inventory_list' %}">{% trans "Inventory" %}</a>
+            <a href="{% url 'sales_list' %}">{% trans "Sales Module" %}</a>
+            <a href="{% url 'gst_report' %}">{% trans "GST & Reports" %}</a>
+            <a href="{% url 'manage_staff' %}" style="color: var(--success);">{% trans "Manage Staff" %}</a>
+        {% endif %}
+        
+        <h4 style="margin: 1.5rem 0 0.5rem 1rem; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">{% trans "Tools" %}</h4>
+        <a href="{% url 'leads_list' %}">{% trans "Lead Generation" %}</a>
+        <a href="{% url 'search_asset' %}">{% trans "Asset Tracking" %}</a>
+        
+        <div style="margin-top: 2rem">
+            <a href="{% url 'logout' %}" style="color: var(--danger)">{% trans "Logout" %}</a>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="main-content">
+        <div class="top-navbar">
+            <form action="{% url 'set_language' %}" method="post">{% csrf_token %}
+                <input name="next" type="hidden" value="{{ redirect_to }}">
+                <select name="language" onchange="this.form.submit()" class="language-dropdown">
+                    {% get_current_language as LANGUAGE_CODE %}
+                    {% get_available_languages as LANGUAGES %}
+                    {% for lang in LANGUAGES %}
+                        <option value="{{ lang.0 }}" {% if lang.0 == LANGUAGE_CODE %}selected{% endif %}>
+                            {{ lang.1 }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </form>
+            <button class="theme-toggle" id="theme-btn">🌙 Dark Mode</button>
+            <span style="font-weight: 600;">{{ request.user.username }} ({{ request.user.get_role_display }})</span>
+        </div>
+        
+        <div class="content-area">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <script>
+        const themeBtn = document.getElementById('theme-btn');
+        const root = document.documentElement;
+        
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        root.setAttribute('data-theme', savedTheme);
+        themeBtn.innerText = savedTheme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+
+        themeBtn.addEventListener('click', () => {
+            const currentTheme = root.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            root.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            themeBtn.innerText = newTheme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+        });
+    </script>
+</body>
+</html>

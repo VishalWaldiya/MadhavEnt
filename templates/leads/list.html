@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block title %}Lead Generation - EV Stock Manager{% endblock %}
+
+{% block content %}
+<div class="header">
+    <div>
+        <h1>Lead Generation</h1>
+        <p style="color: var(--text-muted); margin-top: 0.5rem;">Track potential customers and generate quotes.</p>
+    </div>
+    <a href="{% url 'add_lead' %}" class="btn">+ Capture Lead</a>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+        <div style="background: var(--success); color: white; padding: 1rem; border-radius: var(--radius); margin-bottom: 1.5rem;">
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
+
+<div class="card">
+    <div class="header" style="margin-bottom: 1rem;">
+        <h2>Active Leads</h2>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Customer</th>
+                <th>Contact</th>
+                <th>Interest</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lead in leads %}
+            <tr>
+                <td>{{ lead.created_at|date:"M d, Y" }}</td>
+                <td style="font-weight: 600;">{{ lead.customer_name }}</td>
+                <td>{{ lead.contact }}</td>
+                <td>{{ lead.interested_items }}</td>
+                <td>
+                    <span style="font-weight: 600; color: {% if lead.status == 'NEW' %}var(--success){% elif lead.status == 'CONVERTED' %}var(--text-muted){% else %}var(--primary){% endif %};">
+                        {{ lead.get_status_display }}
+                    </span>
+                </td>
+                <td>
+                    <a href="{% url 'add_quote' lead.id %}" class="btn" style="padding: 0.25rem 0.75rem; font-size: 0.85rem; background: transparent; border: 1px solid var(--text-color); color: var(--text-color);">+ Quote</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted)">
+                    No leads captured yet.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

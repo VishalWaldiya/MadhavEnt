@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}Manage Staff - EV Stock Manager{% endblock %}
+
+{% block content %}
+<div class="header">
+    <div>
+        <h1>{% trans "Manage Staff" %}</h1>
+        <p style="color: var(--text-muted); margin-top: 0.5rem;">{% trans "Add new salespersons or administrators." %}</p>
+    </div>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+        <div style="background: {% if message.tags == 'error' %}var(--danger){% else %}var(--success){% endif %}; color: white; padding: 1rem; border-radius: var(--radius); margin-bottom: 1.5rem;">
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
+
+<div class="grid">
+    <div class="card">
+        <h2 style="margin-bottom: 1.5rem;">{% trans "System Users" %}</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>{% trans "Username" %}</th>
+                    <th>{% trans "Role" %}</th>
+                    <th>{% trans "Date Joined" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in staff %}
+                <tr>
+                    <td style="font-weight: 600;">{{ u.username }}</td>
+                    <td>
+                        <span style="background: {% if u.role == 'ADMIN' %}var(--danger){% else %}var(--primary){% endif %}; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; color: white;">
+                            {{ u.get_role_display }}
+                        </span>
+                    </td>
+                    <td>{{ u.date_joined|date:"M d, Y" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2 style="margin-bottom: 1.5rem;">{% trans "Add New User" %}</h2>
+        <form method="post" action="{% url 'manage_staff' %}">
+            {% csrf_token %}
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">{% trans "Username" %}</label>
+                <input type="text" name="username" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">{% trans "Password" %}</label>
+                <input type="password" name="password" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
+            </div>
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">{% trans "Role" %}</label>
+                <select name="role" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
+                    <option value="SALES">{% trans "Salesperson" %}</option>
+                    <option value="ADMIN">{% trans "Admin" %}</option>
+                </select>
+            </div>
+            <button type="submit" class="btn" style="width: 100%;">{% trans "Create User" %}</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

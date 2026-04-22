@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Record Sale - EV Stock Manager{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 800px; margin: 0 auto;">
+    <div class="header">
+        <h1>Record New Sale</h1>
+    </div>
+    <form method="post" action="{% url 'add_sale' %}">
+        {% csrf_token %}
+        <div class="grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 1.5rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Customer Name</label>
+                <input type="text" name="customer_name" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Customer Contact</label>
+                <input type="text" name="customer_contact" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            </div>
+        </div>
+
+        <h3 style="margin-bottom: 1rem; color: var(--text-muted);">Vehicle Details</h3>
+        <div class="grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 1.5rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Scooter Model</label>
+                <select name="scooter_model" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                    <option value="">-- Select Model --</option>
+                    {% for model in models %}
+                    <option value="{{ model.id }}">{{ model.name }} (₹{{ model.last_price }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Chassis Number (Available)</label>
+                <select name="chassis_number" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                    <option value="">-- Select Chassis --</option>
+                    {% for chassis in available_scooters %}
+                    <option value="{{ chassis.id }}">{{ chassis.serial_number }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Motor Number</label>
+                <input type="text" name="motor_number" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Charger Serial Number (Available)</label>
+                <select name="charger" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                    <option value="">-- Select Charger --</option>
+                    {% for charger in available_chargers %}
+                    <option value="{{ charger.id }}">{{ charger.serial_number }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <h3 style="margin-bottom: 1rem; color: var(--text-muted);">Battery Setup</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Hold Ctrl/Cmd to select multiple batteries if required.</p>
+        <div style="margin-bottom: 1.5rem;">
+            <select name="batteries" multiple required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; min-height: 100px;">
+                {% for battery in available_batteries %}
+                <option value="{{ battery.id }}">{{ battery.serial_number }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <h3 style="margin-bottom: 1rem; color: var(--text-muted);">Financials & GST</h3>
+        <div class="grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 1.5rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Financer (EMI)</label>
+                <input type="text" name="financer" placeholder="Leave blank if Cash sale" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">GST Number</label>
+                <input type="text" name="gst_number" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Taxable Amount (₹)</label>
+                <input type="number" step="0.01" name="taxable_amount" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Total Amount (₹)</label>
+                <input type="number" step="0.01" name="total_amount" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            </div>
+        </div>
+
+        <div>
+            <a href="{% url 'sales_list' %}" class="btn" style="background: transparent; border: 1px solid var(--text-muted); color: var(--text-muted); margin-right: 1rem;">Cancel</a>
+            <button type="submit" class="btn">Confirm Sale</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
