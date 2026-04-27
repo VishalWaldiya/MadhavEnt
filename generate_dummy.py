@@ -83,7 +83,9 @@ for i in range(5):
         "total_amount": Decimal(scooter.scooter_model.last_price) + Decimal('5000.00'),
         "taxable_amount": (Decimal(scooter.scooter_model.last_price) + Decimal('5000.00')) * Decimal('0.85'),
         "gst_number": f"22AAAAA000{i}A1Z5",
-        "financer": random.choice(["Bajaj Finserv", "HDFC", "Cash"])
+        "financer": random.choice(["Bajaj Finserv", "HDFC", "Cash"]),
+        "aadhar_number": f"{random.randint(1000,9999)} {random.randint(1000,9999)} {random.randint(1000,9999)}",
+        "pan_number": f"ABCDE{random.randint(1000,9999)}F"
     })
     
     if created:
@@ -104,7 +106,9 @@ for i in range(5):
     lead, _ = Lead.objects.get_or_create(customer_name=f"Lead Customer {i}", contact=f"88888888{i}8", defaults={
         "salesperson": random.choice(sales_ids),
         "interested_items": "Looking for EcoBolt 100",
-        "status": "NEW"
+        "status": "NEW",
+        "aadhar_number": f"{random.randint(1000,9999)} {random.randint(1000,9999)} {random.randint(1000,9999)}",
+        "pan_number": f"FGHIJ{random.randint(1000,9999)}K"
     })
     Quote.objects.get_or_create(lead=lead, defaults={
         "scooter_model": models_list[0],

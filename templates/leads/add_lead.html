@@ -7,7 +7,7 @@
     <div class="header">
         <h1>Capture New Lead</h1>
     </div>
-    <form method="post" action="{% url 'add_lead' %}">
+    <form method="post" action="{% url 'add_lead' %}" enctype="multipart/form-data">
         {% csrf_token %}
         <div style="margin-bottom: 1rem;">
             <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Customer Name</label>
@@ -20,6 +20,30 @@
         <div style="margin-bottom: 1.5rem;">
             <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Interested Items / Remarks</label>
             <textarea name="interested_items" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; resize: vertical; min-height: 80px;"></textarea>
+        </div>
+        
+        <h3 style="margin-bottom: 1rem; color: var(--text-muted); font-size: 1.1rem;">Identity Information (Optional)</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Aadhar Number</label>
+                <input type="text" name="aadhar_number" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">PAN Number</label>
+                <input type="text" name="pan_number" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Aadhar Front Photo</label>
+                <input type="file" name="aadhar_front_photo" accept="image/*" style="width: 100%; padding: 0.5rem; color: white;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Aadhar Back Photo</label>
+                <input type="file" name="aadhar_back_photo" accept="image/*" style="width: 100%; padding: 0.5rem; color: white;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">PAN Photo</label>
+                <input type="file" name="pan_photo" accept="image/*" style="width: 100%; padding: 0.5rem; color: white;">
+            </div>
         </div>
         <div>
             <a href="{% url 'leads_list' %}" class="btn" style="background: transparent; border: 1px solid var(--text-muted); color: var(--text-muted); margin-right: 1rem;">Cancel</a>

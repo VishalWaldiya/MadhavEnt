@@ -52,3 +52,66 @@ def manage_staff(request):
         return redirect('manage_staff')
     staff = User.objects.all()
     return render(request, 'core/manage_staff.html', {'staff': staff})
+
+def secret_admin_signup(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        if username and password:
+            if not User.objects.filter(username=username).exists():
+                user = User.objects.create_user(username=username, password=password, role='ADMIN')
+                user.is_staff = True
+                user.is_superuser = True
+                user.save()
+                messages.success(request, f'Admin user {username} created successfully. You can now login.')
+                return redirect('login')
+            else:
+                messages.error(request, 'Username already exists.')
+        else:
+            messages.error(request, 'Please provide both username and password.')
+    return render(request, 'core/secret_admin_signup.html')
+
+from django.db.models import Q
+
+@login_required
+def global_search(request):
+    q = request.GET.get('q', '').strip()
+    
+    results = {
+        'inventory_items': [],
+        'scooter_models': [],
+        'sales': [],
+        'leads': []
+    }
+    
+    if q:
+        # Search Inventory Items
+        results['inventory_items'] = StockItem.objects.filter(
+            Q(serial_number__icontains=q) | Q(name__icontains=q)
+        )
+        
+        # Search Scooter Models
+        results['scooter_models'] = ScooterModel.objects.filter(
+            name__icontains=q
+        )
+        
+        # Search Sales / Invoices
+        sales_query = Q(customer_name__icontains=q) | \
+                      Q(customer_contact__icontains=q) | \
+                      Q(aadhar_number__icontains=q) | \
+                      Q(pan_number__icontains=q) | \
+                      Q(gst_number__icontains=q)
+        if q.isdigit():
+            sales_query |= Q(id=int(q))
+            
+        results['sales'] = SaleRecord.objects.filter(sales_query).distinct()
+        
+        # Search Leads
+        results['leads'] = Lead.objects.filter(
+            Q(customer_name__icontains=q) | 
+            Q(contact__icontains=q) |
+            Q(aadhar_number__icontains=q) |
+            Q(pan_number__icontains=q)
+        ).distinct()
+        
+    return render(request, 'core/global_search_results.html', {'query': q, 'results': results})

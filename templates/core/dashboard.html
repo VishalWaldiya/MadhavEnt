@@ -16,24 +16,30 @@
 </div>
 
 <div class="grid">
-    <div class="card">
-        <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">New Leads</h3>
-        <div style="font-size: 2.5rem; font-weight: 700; margin: 1rem 0; color: var(--primary)">{{ new_leads|length }}
+    <a href="{% url 'leads_list' %}" style="text-decoration: none; color: inherit; display: block;">
+        <div class="card" style="cursor: pointer; height: 100%;">
+            <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">New Leads</h3>
+            <div style="font-size: 2.5rem; font-weight: 700; margin: 1rem 0; color: var(--primary)">{{ new_leads|length }}
+            </div>
+            <p style="color: var(--success); font-size: 0.9rem;">Active potential customers</p>
         </div>
-        <p style="color: var(--success); font-size: 0.9rem;">Active potential customers</p>
-    </div>
-    <div class="card">
-        <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">Available Scooters Models
-        </h3>
-        <div style="font-size: 2.5rem; font-weight: 700; margin: 1rem 0; color: var(--primary)">{{ scooters|length }}
+    </a>
+    <a href="{% url 'inventory_list' %}" style="text-decoration: none; color: inherit; display: block;">
+        <div class="card" style="cursor: pointer; height: 100%;">
+            <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">Available Scooters Models
+            </h3>
+            <div style="font-size: 2.5rem; font-weight: 700; margin: 1rem 0; color: var(--primary)">{{ scooters|length }}
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Track specifications & availability</p>
         </div>
-        <p style="color: var(--text-muted); font-size: 0.9rem;">Track specifications & availability</p>
-    </div>
-    <div class="card">
-        <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">Recent Sales</h3>
-        <div style="font-size: 2.5rem; font-weight: 700; margin: 1rem 0; color: var(--primary)">{{ recent_sales|length }}</div>
-        <p style="color: var(--text-muted); font-size: 0.9rem;">Completed transactions</p>
-    </div>
+    </a>
+    <a href="{% url 'sales_list' %}" style="text-decoration: none; color: inherit; display: block;">
+        <div class="card" style="cursor: pointer; height: 100%;">
+            <h3 style="color: var(--text-muted); font-size: 0.9rem; text-transform: uppercase;">Recent Sales</h3>
+            <div style="font-size: 2.5rem; font-weight: 700; margin: 1rem 0; color: var(--primary)">{{ recent_sales|length }}</div>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Completed transactions</p>
+        </div>
+    </a>
 </div>
 
 {% if request.user.role == 'ADMIN' %}

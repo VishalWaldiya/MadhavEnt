@@ -14,6 +14,14 @@ class Lead(models.Model):
     salesperson = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     interested_items = models.TextField(blank=True) # E.g., 'Looking for Scooter Model X'
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='NEW')
+    
+    # Finance and Identity Information
+    aadhar_number = models.CharField(max_length=20, blank=True, null=True)
+    pan_number = models.CharField(max_length=20, blank=True, null=True)
+    aadhar_front_photo = models.ImageField(upload_to='leads/aadhar/', blank=True, null=True)
+    aadhar_back_photo = models.ImageField(upload_to='leads/aadhar/', blank=True, null=True)
+    pan_photo = models.ImageField(upload_to='leads/pan/', blank=True, null=True)
+    
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}Search Results - EV Stock Manager{% endblock %}
+
+{% block content %}
+<div class="header">
+    <div>
+        <h1>Search Results for "{{ query }}"</h1>
+        <p style="color: var(--text-muted); margin-top: 0.5rem;">Showing results across all modules.</p>
+    </div>
+</div>
+
+{% if not query %}
+<div class="card" style="text-align: center; padding: 3rem;">
+    <p style="color: var(--text-muted);">Please enter a search term in the top bar.</p>
+</div>
+{% elif not results.inventory_items and not results.scooter_models and not results.sales and not results.leads %}
+<div class="card" style="text-align: center; padding: 3rem;">
+    <p style="color: var(--danger);">No results found anywhere for "{{ query }}".</p>
+</div>
+{% else %}
+
+    {% if results.sales %}
+    <div class="card" style="margin-bottom: 2rem;">
+        <h2 style="color: var(--primary); margin-bottom: 1rem;">Sales & Invoices</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Invoice ID</th>
+                    <th>Customer Name</th>
+                    <th>Contact</th>
+                    <th>Date</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in results.sales %}
+                <tr>
+                    <td>INV-{{ sale.id }}</td>
+                    <td style="font-weight: 600;">{{ sale.customer_name }}</td>
+                    <td>{{ sale.customer_contact }}</td>
+                    <td>{{ sale.sale_date|date:"M d, Y" }}</td>
+                    <td><a href="{% url 'invoice_view' sale.id %}" target="_blank" style="color: var(--primary);">View Invoice</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if results.leads %}
+    <div class="card" style="margin-bottom: 2rem;">
+        <h2 style="color: var(--success); margin-bottom: 1rem;">Leads</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Customer Name</th>
+                    <th>Contact</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lead in results.leads %}
+                <tr>
+                    <td style="font-weight: 600;">{{ lead.customer_name }}</td>
+                    <td>{{ lead.contact }}</td>
+                    <td>{{ lead.get_status_display }}</td>
+                    <td>{{ lead.created_at|date:"M d, Y" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if results.inventory_items %}
+    <div class="card" style="margin-bottom: 2rem;">
+        <h2 style="color: var(--primary); margin-bottom: 1rem;">Inventory Items (Chassis, Batteries, etc.)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Serial Number</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in results.inventory_items %}
+                <tr>
+                    <td>{{ item.get_item_type_display }}</td>
+                    <td style="font-family: monospace;">{{ item.serial_number }}</td>
+                    <td>{{ item.get_status_display }}</td>
+                    <td><a href="{% url 'search_asset' %}?q={{ item.serial_number }}" style="color: var(--primary);">Track Asset</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if results.scooter_models %}
+    <div class="card" style="margin-bottom: 2rem;">
+        <h2 style="color: var(--primary); margin-bottom: 1rem;">Scooter Models</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Model Name</th>
+                    <th>Range</th>
+                    <th>Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for model in results.scooter_models %}
+                <tr>
+                    <td style="font-weight: 600;">{{ model.name }}</td>
+                    <td>{{ model.range_km }} km</td>
+                    <td>₹{{ model.last_price }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+{% endif %}
+{% endblock %}

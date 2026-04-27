@@ -2,12 +2,48 @@
 
 {% block title %}Record Sale - EV Stock Manager{% endblock %}
 
+{% block extra_head %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+.select2-container--default .select2-selection--single,
+.select2-container--default .select2-selection--multiple {
+    background-color: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 0.25rem;
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered,
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+    color: white;
+}
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background-color: #334155;
+    border: none;
+}
+.select2-dropdown {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+}
+.select2-results__option {
+    color: white;
+}
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: var(--primary);
+}
+.select2-search--dropdown .select2-search__field {
+    background-color: #0f172a;
+    color: white;
+    border: 1px solid #334155;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="card" style="max-width: 800px; margin: 0 auto;">
     <div class="header">
         <h1>Record New Sale</h1>
     </div>
-    <form method="post" action="{% url 'add_sale' %}">
+    <form method="post" action="{% url 'add_sale' %}" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 1.5rem;">
             <div>
@@ -65,8 +101,28 @@
             </select>
         </div>
 
-        <h3 style="margin-bottom: 1rem; color: var(--text-muted);">Financials & GST</h3>
+        <h3 style="margin-bottom: 1rem; color: var(--text-muted);">Financials, Identity & GST</h3>
         <div class="grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 1.5rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Aadhar Number (Optional)</label>
+                <input type="text" name="aadhar_number" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">PAN Number (Optional)</label>
+                <input type="text" name="pan_number" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Aadhar Front Photo (Optional)</label>
+                <input type="file" name="aadhar_front_photo" accept="image/*" style="width: 100%; padding: 0.5rem; color: white;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Aadhar Back Photo (Optional)</label>
+                <input type="file" name="aadhar_back_photo" accept="image/*" style="width: 100%; padding: 0.5rem; color: white;">
+            </div>
+            <div style="grid-column: span 2;">
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">PAN Photo (Optional)</label>
+                <input type="file" name="pan_photo" accept="image/*" style="width: 100%; padding: 0.5rem; color: white;">
+            </div>
             <div>
                 <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Financer (EMI)</label>
                 <input type="text" name="financer" placeholder="Leave blank if Cash sale" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
@@ -91,4 +147,17 @@
         </div>
     </form>
 </div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('select').select2({
+            width: '100%',
+            placeholder: function(){
+                $(this).data('placeholder');
+            }
+        });
+    });
+</script>
 {% endblock %}

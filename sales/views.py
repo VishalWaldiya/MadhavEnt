@@ -23,6 +23,12 @@ def add_sale(request):
         taxable_amount = request.POST.get('taxable_amount')
         total_amount = request.POST.get('total_amount')
         
+        aadhar_number = request.POST.get('aadhar_number')
+        pan_number = request.POST.get('pan_number')
+        aadhar_front_photo = request.FILES.get('aadhar_front_photo')
+        aadhar_back_photo = request.FILES.get('aadhar_back_photo')
+        pan_photo = request.FILES.get('pan_photo')
+        
         battery_ids = request.POST.getlist('batteries')
         
         scooter_model = ScooterModel.objects.get(id=scooter_model_id)
@@ -39,7 +45,12 @@ def add_sale(request):
             financer=financer,
             gst_number=gst_number,
             taxable_amount=taxable_amount,
-            total_amount=total_amount
+            total_amount=total_amount,
+            aadhar_number=aadhar_number,
+            pan_number=pan_number,
+            aadhar_front_photo=aadhar_front_photo,
+            aadhar_back_photo=aadhar_back_photo,
+            pan_photo=pan_photo
         )
         
         for b_id in battery_ids:
@@ -87,6 +98,11 @@ def search_asset(request):
             if not sale:
                 sale = SaleRecord.objects.filter(charger=item).first()
     return render(request, 'sales/search.html', {'query': query, 'item': item, 'sale': sale})
+
+@login_required
+def invoice_view(request, sale_id):
+    sale = get_object_or_404(SaleRecord, id=sale_id)
+    return render(request, 'sales/invoice.html', {'sale': sale})
 
 @login_required
 def gst_report(request):

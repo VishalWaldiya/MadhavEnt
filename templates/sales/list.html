@@ -31,6 +31,7 @@
                 <th>Model</th>
                 <th>Chassis No.</th>
                 <th>Amount</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -41,10 +42,11 @@
                 <td>{{ sale.scooter_model.name }}</td>
                 <td style="font-family: monospace;">{{ sale.chassis_number.serial_number }}</td>
                 <td>₹{{ sale.total_amount }}</td>
+                <td><a href="{% url 'invoice_view' sale.id %}" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600;">📄 Invoice</a></td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted)">
+                <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted)">
                     No sales recorded yet.
                 </td>
             </tr>

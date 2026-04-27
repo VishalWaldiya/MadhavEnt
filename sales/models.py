@@ -12,6 +12,13 @@ class SaleRecord(models.Model):
     sale_date = models.DateTimeField(auto_now_add=True)
     financer = models.CharField(max_length=100, blank=True, null=True)
     
+    # Finance and Identity Information
+    aadhar_number = models.CharField(max_length=20, blank=True, null=True)
+    pan_number = models.CharField(max_length=20, blank=True, null=True)
+    aadhar_front_photo = models.ImageField(upload_to='sales/aadhar/', blank=True, null=True)
+    aadhar_back_photo = models.ImageField(upload_to='sales/aadhar/', blank=True, null=True)
+    pan_photo = models.ImageField(upload_to='sales/pan/', blank=True, null=True)
+    
     gst_number = models.CharField(max_length=50, blank=True, null=True)
     taxable_amount = models.DecimalField(max_digits=12, decimal_places=2)
     total_amount = models.DecimalField(max_digits=12, decimal_places=2)

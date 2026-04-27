@@ -40,7 +40,13 @@
                 <tr><th>Sale Date</th><td>{{ sale.sale_date }}</td></tr>
                 <tr><th>Financer</th><td>{{ sale.financer|default:"Cash / N/A" }}</td></tr>
                 <tr><th>Total Amount</th><td>₹{{ sale.total_amount }}</td></tr>
-                <tr><th>Link</th><td><a href="#" style="color: var(--primary);">View Full Invoice</a></td></tr>
+                {% if sale.aadhar_number %}
+                <tr><th>Aadhar Number</th><td style="font-family: monospace;">{{ sale.aadhar_number }}</td></tr>
+                {% endif %}
+                {% if sale.pan_number %}
+                <tr><th>PAN Number</th><td style="font-family: monospace;">{{ sale.pan_number }}</td></tr>
+                {% endif %}
+                <tr><th>Link</th><td><a href="{% url 'invoice_view' sale.id %}" target="_blank" style="color: var(--primary);">View Full Invoice</a></td></tr>
             </tbody>
         </table>
         {% else %}

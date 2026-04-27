@@ -16,11 +16,22 @@ def add_lead(request):
         contact = request.POST.get('contact')
         interested_items = request.POST.get('interested_items')
         
+        aadhar_number = request.POST.get('aadhar_number')
+        pan_number = request.POST.get('pan_number')
+        aadhar_front_photo = request.FILES.get('aadhar_front_photo')
+        aadhar_back_photo = request.FILES.get('aadhar_back_photo')
+        pan_photo = request.FILES.get('pan_photo')
+        
         Lead.objects.create(
             customer_name=customer_name,
             contact=contact,
             salesperson=request.user,
-            interested_items=interested_items
+            interested_items=interested_items,
+            aadhar_number=aadhar_number,
+            pan_number=pan_number,
+            aadhar_front_photo=aadhar_front_photo,
+            aadhar_back_photo=aadhar_back_photo,
+            pan_photo=pan_photo
         )
         messages.success(request, 'Lead captured successfully.')
         return redirect('leads_list')
