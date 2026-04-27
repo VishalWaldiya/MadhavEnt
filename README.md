@@ -8,6 +8,13 @@ This is the backend for the EV Stock Manager project, built using Django and Dja
 - **Authentication:** JWT (JSON Web Tokens) via djangorestframework-simplejwt
 - **Database:** SQLite (default for development, can be configured for PostgreSQL/MySQL in production)
 
+## Key Features
+- **Universal Search**: Instantly search across inventory, models, leads, and sales/invoices globally from the top navigation.
+- **Identity & Finance Tracking**: Store and manage optional Aadhar and PAN details (including photo uploads) for leads and sales.
+- **Printable Invoices**: Automatically generate professional, printable invoices linked to every completed sale.
+- **Asset Tracking**: Powerful asset tracking to look up the complete history, status, and associated sale of any chassis, charger, or battery.
+- **Automated Administration**: Automatically generates a default `admin` superuser upon application startup. Hidden administrative signup endpoint for secure access.
+
 ## Project Structure
 - `core/`: Core application containing shared models, utilities, and user management.
 - `inventory/`: Manages EV stock, vehicles, parts, and stock movements.
