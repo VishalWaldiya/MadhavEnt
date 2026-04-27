@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    command: sh -c "python manage.py migrate && gunicorn --bind 0.0.0.0:8000 --workers 3 core_project.wsgi:application"
+    volumes:
+      - .:/app
+      - static_volume:/app/static
+      - media_volume:/app/media
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=replace_this_with_a_secure_secret_key_in_production
+      # - DATABASE_URL=postgres://user:password@db:5432/dbname
+    restart: always
+
+volumes:
+  static_volume:
+  media_volume:
