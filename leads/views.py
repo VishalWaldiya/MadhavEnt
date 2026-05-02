@@ -85,3 +85,14 @@ def add_quote(request, lead_id):
     batteries = StockItem.objects.filter(item_type='BATTERY', status='AVAILABLE')
     chargers = StockItem.objects.filter(item_type='CHARGER', status='AVAILABLE')
     return render(request, 'leads/add_quote.html', {'lead': lead, 'scooters': scooters, 'batteries': batteries, 'chargers': chargers})
+
+@login_required
+def reject_lead(request, lead_id):
+    lead = get_object_or_404(Lead, id=lead_id)
+    if request.method == 'POST':
+        reason = request.POST.get('rejection_reason', '')
+        lead.status = 'REJECTED'
+        lead.rejection_reason = reason
+        lead.save()
+        messages.success(request, f'Lead for {lead.customer.get_full_name()} has been rejected.')
+    return redirect('leads_list')

@@ -26,10 +26,37 @@ def dashboard(request):
     recent_sales = SaleRecord.objects.order_by('-sale_date')[:5]
     new_leads = Lead.objects.filter(status='NEW')
     
+    # Low stock alerts
+    low_stock_alerts = []
+    # Check Scooters
+    for s in scooters:
+        count = StockItem.objects.filter(scooter_model=s, status='AVAILABLE').count()
+        if count < 2:
+            low_stock_alerts.append({
+                'item': s.name,
+                'count': count,
+                'type': 'Scooter'
+            })
+    
+    # Check other items (Batteries, Chargers, Parts)
+    from django.db.models import Count
+    other_items = StockItem.objects.filter(scooter_model__isnull=True, status='AVAILABLE')\
+        .values('item_type', 'name')\
+        .annotate(total=Count('id'))
+    
+    for item in other_items:
+        if item['total'] < 2:
+            low_stock_alerts.append({
+                'item': item['name'] or item['item_type'],
+                'count': item['total'],
+                'type': item['item_type'].title()
+            })
+    
     return render(request, 'core/dashboard.html', {
         'scooters': scooters,
         'recent_sales': recent_sales,
         'new_leads': new_leads,
+        'low_stock_alerts': low_stock_alerts,
     })
 
 from django.contrib.auth import get_user_model

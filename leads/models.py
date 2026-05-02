@@ -8,11 +8,13 @@ class Lead(models.Model):
         ('IN_PROGRESS', 'In Progress'),
         ('CONVERTED', 'Converted'),
         ('LOST', 'Lost'),
+        ('REJECTED', 'Rejected'),
     )
     customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='leads')
     salesperson = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='managed_leads')
     interested_items = models.TextField(blank=True) # E.g., 'Looking for Scooter Model X'
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='NEW')
+    rejection_reason = models.TextField(blank=True, null=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
 
