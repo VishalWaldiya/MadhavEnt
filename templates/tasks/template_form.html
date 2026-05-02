@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}Create Template - EV Stock Manager{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1>{% trans "Create Workflow Template" %}</h1>
+</div>
+
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+    <form method="post">
+        {% csrf_token %}
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">{% trans "Template Name" %}</label>
+            <input type="text" name="name" required placeholder="e.g. Vehicle Registration" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">{% trans "Description" %}</label>
+            <textarea name="description" rows="3" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);"></textarea>
+        </div>
+
+        <h3 style="margin-bottom: 1rem; color: var(--primary);">{% trans "Workflow Stages" %}</h3>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">{% trans "Add stages in the order they should appear on the Kanban board." %}</p>
+        
+        <div id="stages-container" style="margin-bottom: 1.5rem;">
+            <div class="stage-input" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <input type="text" name="stages" required placeholder="Stage Name (e.g. Pending)" style="flex: 1; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
+                <button type="button" onclick="this.parentElement.remove()" class="btn" style="background: var(--danger); padding: 0.5rem 1rem;">{% trans "Remove" %}</button>
+            </div>
+            <div class="stage-input" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <input type="text" name="stages" required placeholder="Stage Name (e.g. In Progress)" style="flex: 1; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
+                <button type="button" onclick="this.parentElement.remove()" class="btn" style="background: var(--danger); padding: 0.5rem 1rem;">{% trans "Remove" %}</button>
+            </div>
+        </div>
+        
+        <button type="button" id="add-stage-btn" class="btn" style="background: var(--text-muted); margin-bottom: 2rem; width: 100%;">{% trans "+ Add Another Stage" %}</button>
+
+        <div style="display: flex; gap: 1rem;">
+            <a href="{% url 'template_list' %}" class="btn" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); flex: 1; text-align: center;">{% trans "Cancel" %}</a>
+            <button type="submit" class="btn" style="flex: 2;">{% trans "Save Template" %}</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.getElementById('add-stage-btn').addEventListener('click', function() {
+        const container = document.getElementById('stages-container');
+        const div = document.createElement('div');
+        div.className = 'stage-input';
+        div.style.display = 'flex';
+        div.style.gap = '0.5rem';
+        div.style.marginBottom = '0.5rem';
+        div.innerHTML = `
+            <input type="text" name="stages" required placeholder="Stage Name" style="flex: 1; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
+            <button type="button" onclick="this.parentElement.remove()" class="btn" style="background: var(--danger); padding: 0.5rem 1rem;">{% trans "Remove" %}</button>
+        `;
+        container.appendChild(div);
+    });
+</script>
+{% endblock %}

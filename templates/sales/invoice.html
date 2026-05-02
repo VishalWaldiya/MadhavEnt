@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Invoice #INV-{{ sale.id }} - {{ sale.customer_name }}</title>
+    <title>Invoice #INV-{{ sale.id }} - {{ sale.customer.get_full_name }}</title>
     <style>
         body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; margin: 0; color: #333; }
         .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #eee; box-shadow: 0 0 10px rgba(0, 0, 0, 0.15); font-size: 16px; line-height: 24px; color: #555; }
@@ -54,10 +54,10 @@
                             </td>
                             <td style="text-align: right;">
                                 <strong>Customer Details</strong><br>
-                                {{ sale.customer_name }}<br>
-                                Contact: {{ sale.customer_contact }}<br>
-                                {% if sale.aadhar_number %}Aadhar: {{ sale.aadhar_number }}<br>{% endif %}
-                                {% if sale.pan_number %}PAN: {{ sale.pan_number }}<br>{% endif %}
+                                {{ sale.customer.get_full_name }}<br>
+                                Contact: {{ sale.customer.phone_number }}<br>
+                                {% if sale.customer.aadhar_number %}Aadhar: {{ sale.customer.aadhar_number }}<br>{% endif %}
+                                {% if sale.customer.pan_number %}PAN: {{ sale.customer.pan_number }}<br>{% endif %}
                             </td>
                         </tr>
                     </table>

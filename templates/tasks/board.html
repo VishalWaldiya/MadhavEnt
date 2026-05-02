@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load tasks_extras %}
+
+{% block title %}Task Board - EV Stock Manager{% endblock %}
+
+{% block extra_head %}
+<style>
+    .kanban-container {
+        display: flex;
+        gap: 1.5rem;
+        overflow-x: auto;
+        padding-bottom: 1rem;
+        min-height: 70vh;
+        align-items: flex-start;
+    }
+    .kanban-column {
+        background: var(--bg-color);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        min-width: 320px;
+        max-width: 320px;
+        display: flex;
+        flex-direction: column;
+        max-height: 80vh;
+    }
+    .column-header {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--card-bg);
+        border-radius: var(--radius) var(--radius) 0 0;
+    }
+    .column-body {
+        padding: 1rem;
+        overflow-y: auto;
+        flex: 1;
+        min-height: 100px;
+    }
+    .task-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        cursor: grab;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .task-card:active { cursor: grabbing; }
+    .task-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+    
+    .dragging { opacity: 0.5; }
+    .drag-over { background: rgba(59, 130, 246, 0.1); border: 2px dashed var(--primary); }
+
+    .photo-preview {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 4px;
+        margin-top: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="header" style="margin-bottom: 1.5rem;">
+    <div style="display: flex; align-items: center; gap: 2rem;">
+        <div>
+            <h1>{% trans "Shop Tasks" %}</h1>
+            <p style="color: var(--text-muted); margin-top: 0.25rem;">{% trans "Manage shop operations and processes." %}</p>
+        </div>
+        
+        <form method="get" id="template-filter" style="display: flex; align-items: center; gap: 0.5rem;">
+            <label style="color: var(--text-muted); font-size: 0.9rem;">{% trans "Workflow:" %}</label>
+            <select name="template" onchange="this.form.submit()" class="language-dropdown" style="min-width: 200px;">
+                {% for t in templates %}
+                <option value="{{ t.id }}" {% if t.id == active_template.id %}selected{% endif %}>{{ t.name }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+    
+    <div style="display: flex; gap: 0.5rem;">
+        {% if request.user.role == 'ADMIN' %}
+        <a href="{% url 'template_list' %}" class="btn" style="background: var(--text-muted);">{% trans "Manage Templates" %}</a>
+        {% endif %}
+        <a href="{% url 'add_task' %}" class="btn">{% trans "+ New Task" %}</a>
+    </div>
+</div>
+
+{% if active_template %}
+<div class="kanban-container">
+    {% for stage in stages %}
+    <div class="kanban-column" data-stage-id="{{ stage.id }}">
+        <div class="column-header">
+            <h3 style="font-size: 1rem; font-weight: 700;">{{ stage.name }}</h3>
+            <span style="background: var(--primary); color: white; padding: 0.1rem 0.6rem; border-radius: 12px; font-size: 0.75rem;">
+                {{ tasks_by_stage|dict_get:stage.id|length }}
+            </span>
+        </div>
+        <div class="column-body" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+            {% for task in tasks_by_stage|dict_get:stage.id %}
+            <div class="task-card" draggable="true" ondragstart="drag(event)" id="task-{{ task.id }}" data-task-id="{{ task.id }}">
+                <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem;">{{ task.title }}</h4>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                    {{ task.description|default:"" }}
+                </p>
+                
+                {% if task.photos.exists %}
+                <img src="{{ task.photos.first.photo.url }}" class="photo-preview">
+                {% endif %}
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color);">
+                    <span style="font-size: 0.7rem; color: var(--text-muted);">
+                        <i style="color: var(--primary);">👤</i> {{ task.assigned_to.username }}
+                    </span>
+                    
+                    <div class="fallback-move" style="display: flex; gap: 0.25rem;">
+                        <form action="{% url 'update_task_stage' task.id %}" method="post" style="margin:0;">
+                            {% csrf_token %}
+                            <select name="stage_id" onchange="this.form.submit()" style="font-size: 0.7rem; padding: 0.2rem; border-radius: 4px; background: var(--bg-color); color: var(--text-color); border: 1px solid var(--border-color);">
+                                <option value="" selected disabled>Move...</option>
+                                {% for s in stages %}
+                                <option value="{{ s.id }}">{{ s.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card" style="text-align: center; padding: 3rem;">
+    <p style="color: var(--text-muted);">{% trans "Please select or create a template to view the task board." %}</p>
+</div>
+{% endif %}
+
+<script>
+    function allowDrop(ev) {
+        ev.preventDefault();
+        ev.currentTarget.classList.add('drag-over');
+    }
+
+    function dragLeave(ev) {
+        ev.currentTarget.classList.remove('drag-over');
+    }
+
+    function drag(ev) {
+        ev.dataTransfer.setData("text", ev.target.id);
+        ev.target.classList.add('dragging');
+    }
+
+    function drop(ev) {
+        ev.preventDefault();
+        const container = ev.currentTarget;
+        container.classList.remove('drag-over');
+        
+        const data = ev.dataTransfer.getData("text");
+        const card = document.getElementById(data);
+        card.classList.remove('dragging');
+        
+        const taskId = card.getAttribute('data-task-id');
+        const newStageId = container.closest('.kanban-column').getAttribute('data-stage-id');
+        
+        // Optimistic UI move
+        container.appendChild(card);
+        
+        // Ajax request to update
+        fetch(`/tasks/update/${taskId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `stage_id=${newStageId}`
+        }).then(response => {
+            if (!response.ok) {
+                alert("Failed to move task. Please refresh.");
+                location.reload();
+            }
+        });
+    }
+</script>
+{% endblock %}

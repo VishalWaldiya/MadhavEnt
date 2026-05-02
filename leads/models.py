@@ -9,23 +9,15 @@ class Lead(models.Model):
         ('CONVERTED', 'Converted'),
         ('LOST', 'Lost'),
     )
-    customer_name = models.CharField(max_length=100)
-    contact = models.CharField(max_length=20)
-    salesperson = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='leads')
+    salesperson = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='managed_leads')
     interested_items = models.TextField(blank=True) # E.g., 'Looking for Scooter Model X'
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='NEW')
-    
-    # Finance and Identity Information
-    aadhar_number = models.CharField(max_length=20, blank=True, null=True)
-    pan_number = models.CharField(max_length=20, blank=True, null=True)
-    aadhar_front_photo = models.ImageField(upload_to='leads/aadhar/', blank=True, null=True)
-    aadhar_back_photo = models.ImageField(upload_to='leads/aadhar/', blank=True, null=True)
-    pan_photo = models.ImageField(upload_to='leads/pan/', blank=True, null=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Lead: {self.customer_name}"
+        return f"Lead: {self.customer.get_full_name() if self.customer else 'Unknown'}"
 
 class Quote(models.Model):
     lead = models.ForeignKey(Lead, on_delete=models.CASCADE, related_name='quotes')

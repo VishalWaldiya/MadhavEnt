@@ -9,13 +9,19 @@
     </div>
     <form method="post" action="{% url 'add_lead' %}" enctype="multipart/form-data">
         {% csrf_token %}
-        <div style="margin-bottom: 1rem;">
-            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Customer Name</label>
-            <input type="text" name="customer_name" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">First Name</label>
+                <input type="text" name="first_name" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Last Name</label>
+                <input type="text" name="last_name" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            </div>
         </div>
         <div style="margin-bottom: 1rem;">
-            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Contact Details</label>
-            <input type="text" name="contact" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Contact Number</label>
+            <input type="text" name="phone_number" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
         </div>
         <div style="margin-bottom: 1.5rem;">
             <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Interested Items / Remarks</label>

@@ -37,8 +37,8 @@
                 {% for sale in results.sales %}
                 <tr>
                     <td>INV-{{ sale.id }}</td>
-                    <td style="font-weight: 600;">{{ sale.customer_name }}</td>
-                    <td>{{ sale.customer_contact }}</td>
+                    <td style="font-weight: 600;">{{ sale.customer.get_full_name }}</td>
+                    <td>{{ sale.customer.phone_number }}</td>
                     <td>{{ sale.sale_date|date:"M d, Y" }}</td>
                     <td><a href="{% url 'invoice_view' sale.id %}" target="_blank" style="color: var(--primary);">View Invoice</a></td>
                 </tr>
@@ -63,8 +63,8 @@
             <tbody>
                 {% for lead in results.leads %}
                 <tr>
-                    <td style="font-weight: 600;">{{ lead.customer_name }}</td>
-                    <td>{{ lead.contact }}</td>
+                    <td style="font-weight: 600;">{{ lead.customer.get_full_name }}</td>
+                    <td>{{ lead.customer.phone_number }}</td>
                     <td>{{ lead.get_status_display }}</td>
                     <td>{{ lead.created_at|date:"M d, Y" }}</td>
                 </tr>

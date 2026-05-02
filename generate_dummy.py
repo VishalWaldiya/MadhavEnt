@@ -72,20 +72,32 @@ for i in range(5):
     battery2 = available_batteries.pop()
     
     sale_date = timezone.now().date() - timedelta(days=random.randint(1, 10))
-    customer = random.choice(customers)
+    customer_name = random.choice(customers)
+    first_name, last_name = customer_name.split(' ', 1) if ' ' in customer_name else (customer_name, '')
+    phone = f"9876543{random.randint(100, 999)}"
+    
+    import uuid
+    customer_user, _ = User.objects.get_or_create(
+        phone_number=phone,
+        defaults={
+            "first_name": first_name,
+            "last_name": last_name,
+            "role": "CUSTOMER",
+            "username": f"cust_{phone}_{uuid.uuid4().hex[:6]}",
+            "aadhar_number": f"{random.randint(1000,9999)} {random.randint(1000,9999)} {random.randint(1000,9999)}",
+            "pan_number": f"ABCDE{random.randint(1000,9999)}F"
+        }
+    )
     
     sale, created = SaleRecord.objects.get_or_create(chassis_number=scooter, defaults={
         "charger": charger,
         "scooter_model": scooter.scooter_model,
-        "customer_name": customer,
-        "customer_contact": f"9876543{random.randint(100, 999)}",
+        "customer": customer_user,
         "sale_date": sale_date,
         "total_amount": Decimal(scooter.scooter_model.last_price) + Decimal('5000.00'),
         "taxable_amount": (Decimal(scooter.scooter_model.last_price) + Decimal('5000.00')) * Decimal('0.85'),
         "gst_number": f"22AAAAA000{i}A1Z5",
-        "financer": random.choice(["Bajaj Finserv", "HDFC", "Cash"]),
-        "aadhar_number": f"{random.randint(1000,9999)} {random.randint(1000,9999)} {random.randint(1000,9999)}",
-        "pan_number": f"ABCDE{random.randint(1000,9999)}F"
+        "financer": random.choice(["Bajaj Finserv", "HDFC", "Cash"])
     })
     
     if created:
@@ -103,12 +115,22 @@ for i in range(5):
 
 # Leads
 for i in range(5):
-    lead, _ = Lead.objects.get_or_create(customer_name=f"Lead Customer {i}", contact=f"88888888{i}8", defaults={
+    phone = f"88888888{i}8"
+    import uuid
+    customer_user, _ = User.objects.get_or_create(
+        phone_number=phone,
+        defaults={
+            "first_name": f"Lead Customer {i}",
+            "role": "CUSTOMER",
+            "username": f"cust_{phone}_{uuid.uuid4().hex[:6]}",
+            "aadhar_number": f"{random.randint(1000,9999)} {random.randint(1000,9999)} {random.randint(1000,9999)}",
+            "pan_number": f"FGHIJ{random.randint(1000,9999)}K"
+        }
+    )
+    lead, _ = Lead.objects.get_or_create(customer=customer_user, defaults={
         "salesperson": random.choice(sales_ids),
         "interested_items": "Looking for EcoBolt 100",
-        "status": "NEW",
-        "aadhar_number": f"{random.randint(1000,9999)} {random.randint(1000,9999)} {random.randint(1000,9999)}",
-        "pan_number": f"FGHIJ{random.randint(1000,9999)}K"
+        "status": "NEW"
     })
     Quote.objects.get_or_create(lead=lead, defaults={
         "scooter_model": models_list[0],

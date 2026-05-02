@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Customers - EV Stock Manager{% endblock %}
+
+{% block content %}
+<div class="header">
+    <div>
+        <h1>Manage Customers</h1>
+        <p style="color: var(--text-muted); margin-top: 0.5rem;">View all registered customer profiles.</p>
+    </div>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Phone Number</th>
+                <th>Aadhar Number</th>
+                <th>PAN Number</th>
+                <th>Joined</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for customer in customers %}
+            <tr>
+                <td style="font-weight: 600;">{{ customer.get_full_name }}</td>
+                <td>{{ customer.phone_number|default:"-" }}</td>
+                <td style="font-family: monospace;">{{ customer.aadhar_number|default:"-" }}</td>
+                <td style="font-family: monospace;">{{ customer.pan_number|default:"-" }}</td>
+                <td>{{ customer.date_joined|date:"M d, Y" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted)">
+                    No customer profiles exist yet. Capturing a lead or sale will automatically create one.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

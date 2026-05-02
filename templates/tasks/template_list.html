@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}Task Templates - EV Stock Manager{% endblock %}
+
+{% block content %}
+<div class="header">
+    <div>
+        <h1>{% trans "Workflow Templates" %}</h1>
+        <p style="color: var(--text-muted); margin-top: 0.5rem;">{% trans "Define custom stages for different shop processes." %}</p>
+    </div>
+    <a href="{% url 'add_template' %}" class="btn">{% trans "+ Create New Template" %}</a>
+</div>
+
+<div class="grid">
+    {% for template in templates %}
+    <div class="card">
+        <h3 style="color: var(--primary); margin-bottom: 0.5rem;">{{ template.name }}</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">{{ template.description|default:"No description" }}</p>
+        
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem;">
+            {% for stage in template.stages.all %}
+            <span style="background: var(--bg-color); padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem; border: 1px solid var(--border-color);">
+                {{ stage.name }}
+            </span>
+            {% if not forloop.last %}
+            <span style="color: var(--text-muted)">→</span>
+            {% endif %}
+            {% endfor %}
+        </div>
+        
+        <a href="{% url 'board_view' %}?template={{ template.id }}" class="btn" style="width: 100%; text-align: center; background: var(--success);">{% trans "View Board" %}</a>
+    </div>
+    {% empty %}
+    <div class="card" style="grid-column: 1 / -1; text-align: center; padding: 3rem;">
+        <p style="color: var(--text-muted);">{% trans "No templates created yet. Admins can create templates to define shop workflows." %}</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

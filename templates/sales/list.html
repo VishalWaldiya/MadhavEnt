@@ -38,7 +38,7 @@
             {% for sale in sales %}
             <tr>
                 <td>{{ sale.sale_date|date:"M d, Y H:i" }}</td>
-                <td style="font-weight: 600;">{{ sale.customer_name }}</td>
+                <td style="font-weight: 600;">{{ sale.customer.get_full_name }}</td>
                 <td>{{ sale.scooter_model.name }}</td>
                 <td style="font-family: monospace;">{{ sale.chassis_number.serial_number }}</td>
                 <td>₹{{ sale.total_amount }}</td>

@@ -35,20 +35,33 @@
         <h2 style="margin-bottom: 1rem; color: var(--primary);">Sale Details</h2>
         <table>
             <tbody>
-                <tr><th style="width: 200px;">Customer Name</th><td style="font-weight: 600;">{{ sale.customer_name }}</td></tr>
-                <tr><th>Customer Contact</th><td>{{ sale.customer_contact }}</td></tr>
+                <tr><th style="width: 200px;">Customer Name</th><td style="font-weight: 600;">{{ sale.customer.get_full_name }}</td></tr>
+                <tr><th>Customer Contact</th><td>{{ sale.customer.phone_number }}</td></tr>
                 <tr><th>Sale Date</th><td>{{ sale.sale_date }}</td></tr>
                 <tr><th>Financer</th><td>{{ sale.financer|default:"Cash / N/A" }}</td></tr>
                 <tr><th>Total Amount</th><td>₹{{ sale.total_amount }}</td></tr>
-                {% if sale.aadhar_number %}
-                <tr><th>Aadhar Number</th><td style="font-family: monospace;">{{ sale.aadhar_number }}</td></tr>
+                {% if sale.customer.aadhar_number %}
+                <tr><th>Aadhar Number</th><td style="font-family: monospace;">{{ sale.customer.aadhar_number }}</td></tr>
                 {% endif %}
-                {% if sale.pan_number %}
-                <tr><th>PAN Number</th><td style="font-family: monospace;">{{ sale.pan_number }}</td></tr>
+                {% if sale.customer.pan_number %}
+                <tr><th>PAN Number</th><td style="font-family: monospace;">{{ sale.customer.pan_number }}</td></tr>
                 {% endif %}
                 <tr><th>Link</th><td><a href="{% url 'invoice_view' sale.id %}" target="_blank" style="color: var(--primary);">View Full Invoice</a></td></tr>
             </tbody>
         </table>
+
+        {% if sale.photos.exists %}
+        <h3 style="margin: 2rem 0 1rem; color: var(--primary);">Attached Sale Photos</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem;">
+            {% for p in sale.photos.all %}
+            <div style="aspect-ratio: 1; overflow: hidden; border-radius: 8px; border: 1px solid #334155;">
+                <a href="{{ p.photo.url }}" target="_blank">
+                    <img src="{{ p.photo.url }}" style="width: 100%; height: 100%; object-fit: cover;">
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
         {% else %}
         <p style="color: var(--text-muted);">This item has not been sold yet.</p>
         {% endif %}

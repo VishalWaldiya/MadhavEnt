@@ -155,11 +155,15 @@
             <a href="{% url 'sales_list' %}">{% trans "Sales Module" %}</a>
             <a href="{% url 'gst_report' %}">{% trans "GST & Reports" %}</a>
             <a href="{% url 'manage_staff' %}" style="color: var(--success);">{% trans "Manage Staff" %}</a>
+            <a href="{% url 'manage_customers' %}" style="color: var(--primary);">{% trans "Manage Customers" %}</a>
+            <a href="{% url 'notes_list' %}" style="color: #f59e0b;">{% trans "Shop Notepad" %}</a>
+            <a href="{% url 'template_list' %}">{% trans "Workflow Templates" %}</a>
         {% endif %}
         
         <h4 style="margin: 1.5rem 0 0.5rem 1rem; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">{% trans "Tools" %}</h4>
         <a href="{% url 'leads_list' %}">{% trans "Lead Generation" %}</a>
         <a href="{% url 'search_asset' %}">{% trans "Asset Tracking" %}</a>
+        <a href="{% url 'board_view' %}" style="color: #a855f7;">{% trans "Shop Task Board" %}</a>
         
         <div style="margin-top: 2rem">
             <a href="{% url 'logout' %}" style="color: var(--danger)">{% trans "Logout" %}</a>

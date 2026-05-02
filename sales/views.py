@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import SaleRecord, SaleBattery
+from .models import SaleRecord, SaleBattery, SalePhoto
 from inventory.models import ScooterModel, StockItem
 from django.contrib import messages
 
@@ -16,12 +16,13 @@ def add_sale(request):
         chassis_id = request.POST.get('chassis_number')
         motor_number = request.POST.get('motor_number')
         charger_id = request.POST.get('charger')
-        customer_name = request.POST.get('customer_name')
-        customer_contact = request.POST.get('customer_contact')
+        first_name = request.POST.get('first_name', '')
+        last_name = request.POST.get('last_name', '')
+        phone_number = request.POST.get('phone_number', '')
         financer = request.POST.get('financer')
-        gst_number = request.POST.get('gst_number')
         taxable_amount = request.POST.get('taxable_amount')
         total_amount = request.POST.get('total_amount')
+        gst_number = request.POST.get('gst_number')
         
         aadhar_number = request.POST.get('aadhar_number')
         pan_number = request.POST.get('pan_number')
@@ -31,27 +32,47 @@ def add_sale(request):
         
         battery_ids = request.POST.getlist('batteries')
         
-        scooter_model = ScooterModel.objects.get(id=scooter_model_id)
-        chassis = StockItem.objects.get(id=chassis_id)
-        charger = StockItem.objects.get(id=charger_id)
-
+        scooter_model = get_object_or_404(ScooterModel, id=scooter_model_id)
+        chassis = get_object_or_404(StockItem, id=chassis_id)
+        charger = get_object_or_404(StockItem, id=charger_id)
+        
+        from django.contrib.auth import get_user_model
+        import uuid
+        User = get_user_model()
+        
+        customer, created = User.objects.get_or_create(
+            first_name=first_name,
+            last_name=last_name,
+            phone_number=phone_number,
+            defaults={
+                'role': 'CUSTOMER',
+                'username': f"cust_{phone_number}_{uuid.uuid4().hex[:6]}",
+            }
+        )
+        
+        if aadhar_number: customer.aadhar_number = aadhar_number
+        if pan_number: customer.pan_number = pan_number
+        if aadhar_front_photo: customer.aadhar_front_photo = aadhar_front_photo
+        if aadhar_back_photo: customer.aadhar_back_photo = aadhar_back_photo
+        if pan_photo: customer.pan_photo = pan_photo
+        customer.save()
+        
         sale = SaleRecord.objects.create(
             scooter_model=scooter_model,
             chassis_number=chassis,
             motor_number=motor_number,
             charger=charger,
-            customer_name=customer_name,
-            customer_contact=customer_contact,
+            customer=customer,
             financer=financer,
             gst_number=gst_number,
             taxable_amount=taxable_amount,
-            total_amount=total_amount,
-            aadhar_number=aadhar_number,
-            pan_number=pan_number,
-            aadhar_front_photo=aadhar_front_photo,
-            aadhar_back_photo=aadhar_back_photo,
-            pan_photo=pan_photo
+            total_amount=total_amount
         )
+        
+        # Handle Sale Photos
+        sale_photos = request.FILES.getlist('sale_photos')
+        for photo in sale_photos:
+            SalePhoto.objects.create(sale_record=sale, photo=photo)
         
         for b_id in battery_ids:
             if b_id:

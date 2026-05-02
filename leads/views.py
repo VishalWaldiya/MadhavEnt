@@ -12,9 +12,10 @@ def leads_list(request):
 @login_required
 def add_lead(request):
     if request.method == 'POST':
-        customer_name = request.POST.get('customer_name')
-        contact = request.POST.get('contact')
-        interested_items = request.POST.get('interested_items')
+        first_name = request.POST.get('first_name', '')
+        last_name = request.POST.get('last_name', '')
+        phone_number = request.POST.get('phone_number', '')
+        interested_items = request.POST.get('interested_items', '')
         
         aadhar_number = request.POST.get('aadhar_number')
         pan_number = request.POST.get('pan_number')
@@ -22,16 +23,31 @@ def add_lead(request):
         aadhar_back_photo = request.FILES.get('aadhar_back_photo')
         pan_photo = request.FILES.get('pan_photo')
         
+        from django.contrib.auth import get_user_model
+        import uuid
+        User = get_user_model()
+        
+        customer, created = User.objects.get_or_create(
+            first_name=first_name,
+            last_name=last_name,
+            phone_number=phone_number,
+            defaults={
+                'role': 'CUSTOMER',
+                'username': f"cust_{phone_number}_{uuid.uuid4().hex[:6]}",
+            }
+        )
+        
+        if aadhar_number: customer.aadhar_number = aadhar_number
+        if pan_number: customer.pan_number = pan_number
+        if aadhar_front_photo: customer.aadhar_front_photo = aadhar_front_photo
+        if aadhar_back_photo: customer.aadhar_back_photo = aadhar_back_photo
+        if pan_photo: customer.pan_photo = pan_photo
+        customer.save()
+        
         Lead.objects.create(
-            customer_name=customer_name,
-            contact=contact,
-            salesperson=request.user,
+            customer=customer,
             interested_items=interested_items,
-            aadhar_number=aadhar_number,
-            pan_number=pan_number,
-            aadhar_front_photo=aadhar_front_photo,
-            aadhar_back_photo=aadhar_back_photo,
-            pan_photo=pan_photo
+            salesperson=request.user
         )
         messages.success(request, 'Lead captured successfully.')
         return redirect('leads_list')

@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if note %}Edit Note{% else %}Add Note{% endif %} - Shop Notepad{% endblock %}
+
+{% block content %}
+<div class="header">
+    <div>
+        <h1>{% if note %}Edit Note{% else %}New Note{% endif %}</h1>
+        <p style="color: var(--text-muted); margin-top: 0.5rem;">Notes are visible to all Admin staff.</p>
+    </div>
+    <a href="{% url 'notes_list' %}" class="btn" style="background: var(--text-muted);">Cancel & Back</a>
+</div>
+
+<div class="card" style="max-width: 800px;">
+    <form method="post" style="display: flex; flex-direction: column; gap: 1.5rem;">
+        {% csrf_token %}
+        
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <label style="font-weight: 600;">Title</label>
+            <input type="text" name="title" value="{{ note.title|default:'' }}" required placeholder="e.g. Distributor Login Details" style="padding: 0.75rem; border-radius: var(--radius);">
+        </div>
+        
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <label style="font-weight: 600;">Content</label>
+            <textarea name="content" required placeholder="Type your secure note here..." rows="15" style="padding: 0.75rem; border-radius: var(--radius); font-family: monospace; resize: vertical;">{{ note.content|default:'' }}</textarea>
+        </div>
+        
+        <button type="submit" class="btn" style="align-self: flex-start;">
+            {% if note %}Save Changes{% else %}Create Note{% endif %}
+        </button>
+    </form>
+</div>
+{% endblock %}

@@ -38,8 +38,8 @@
             {% for lead in leads %}
             <tr>
                 <td>{{ lead.created_at|date:"M d, Y" }}</td>
-                <td style="font-weight: 600;">{{ lead.customer_name }}</td>
-                <td>{{ lead.contact }}</td>
+                <td style="font-weight: 600;">{{ lead.customer.get_full_name }}</td>
+                <td>{{ lead.customer.phone_number }}</td>
                 <td>{{ lead.interested_items }}</td>
                 <td>
                     <span style="font-weight: 600; color: {% if lead.status == 'NEW' %}var(--success){% elif lead.status == 'CONVERTED' %}var(--text-muted){% else %}var(--primary){% endif %};">
