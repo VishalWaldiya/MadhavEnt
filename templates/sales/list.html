@@ -11,14 +11,6 @@
     <a href="{% url 'add_sale' %}" class="btn">+ Record Sale</a>
 </div>
 
-{% if messages %}
-    {% for message in messages %}
-        <div style="background: var(--success); color: white; padding: 1rem; border-radius: var(--radius); margin-bottom: 1.5rem;">
-            {{ message }}
-        </div>
-    {% endfor %}
-{% endif %}
-
 <div class="card">
     <div class="header" style="margin-bottom: 1rem;">
         <h2>Sale Records</h2>

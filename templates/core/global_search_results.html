@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
 {% block title %}Search Results - EV Stock Manager{% endblock %}
 
@@ -6,7 +7,7 @@
 <div class="header">
     <div>
         <h1>Search Results for "{{ query }}"</h1>
-        <p style="color: var(--text-muted); margin-top: 0.5rem;">Showing results across all modules.</p>
+        <p style="color: var(--text-muted); margin-top: 0.5rem;">Showing results across all authorized modules.</p>
     </div>
 </div>
 
@@ -14,11 +15,42 @@
 <div class="card" style="text-align: center; padding: 3rem;">
     <p style="color: var(--text-muted);">Please enter a search term in the top bar.</p>
 </div>
-{% elif not results.inventory_items and not results.scooter_models and not results.sales and not results.leads %}
-<div class="card" style="text-align: center; padding: 3rem;">
-    <p style="color: var(--danger);">No results found anywhere for "{{ query }}".</p>
-</div>
 {% else %}
+
+    <!-- Check if ANY results exist -->
+    {% if not results.sales and not results.leads and not results.inventory_items and not results.tasks and not results.notes and not results.templates and not results.customers %}
+    <div class="card" style="text-align: center; padding: 3rem;">
+        <p style="color: var(--danger);">No results found for "{{ query }}".</p>
+    </div>
+    {% endif %}
+
+    {% if results.tasks %}
+    <div class="card" style="margin-bottom: 2rem;">
+        <h2 style="color: #a855f7; margin-bottom: 1rem;">Shop Tasks</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Assignee</th>
+                    <th>Stage</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in results.tasks %}
+                <tr>
+                    <td><span style="font-weight: 700;">{{ task.task_number }}</span></td>
+                    <td>{{ task.title }}</td>
+                    <td>{{ task.external_assignee|default:task.assigned_to.username }}</td>
+                    <td>{{ task.current_stage.name }}</td>
+                    <td><a href="{% url 'task_detail' task.id %}" style="color: var(--primary);">View Details</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
 
     {% if results.sales %}
     <div class="card" style="margin-bottom: 2rem;">
@@ -26,10 +58,10 @@
         <table>
             <thead>
                 <tr>
-                    <th>Invoice ID</th>
+                    <th>Invoice</th>
                     <th>Customer Name</th>
                     <th>Contact</th>
-                    <th>Date</th>
+                    <th>Chassis</th>
                     <th>Action</th>
                 </tr>
             </thead>
@@ -39,8 +71,8 @@
                     <td>INV-{{ sale.id }}</td>
                     <td style="font-weight: 600;">{{ sale.customer.get_full_name }}</td>
                     <td>{{ sale.customer.phone_number }}</td>
-                    <td>{{ sale.sale_date|date:"M d, Y" }}</td>
-                    <td><a href="{% url 'invoice_view' sale.id %}" target="_blank" style="color: var(--primary);">View Invoice</a></td>
+                    <td>{{ sale.chassis_number.serial_number }}</td>
+                    <td><a href="{% url 'invoice_view' sale.id %}" target="_blank" style="color: var(--primary);">Invoice</a></td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -57,7 +89,6 @@
                     <th>Customer Name</th>
                     <th>Contact</th>
                     <th>Status</th>
-                    <th>Created</th>
                 </tr>
             </thead>
             <tbody>
@@ -66,7 +97,6 @@
                     <td style="font-weight: 600;">{{ lead.customer.get_full_name }}</td>
                     <td>{{ lead.customer.phone_number }}</td>
                     <td>{{ lead.get_status_display }}</td>
-                    <td>{{ lead.created_at|date:"M d, Y" }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -76,7 +106,7 @@
 
     {% if results.inventory_items %}
     <div class="card" style="margin-bottom: 2rem;">
-        <h2 style="color: var(--primary); margin-bottom: 1rem;">Inventory Items (Chassis, Batteries, etc.)</h2>
+        <h2 style="color: var(--primary); margin-bottom: 1rem;">Inventory</h2>
         <table>
             <thead>
                 <tr>
@@ -100,28 +130,57 @@
     </div>
     {% endif %}
 
-    {% if results.scooter_models %}
-    <div class="card" style="margin-bottom: 2rem;">
-        <h2 style="color: var(--primary); margin-bottom: 1rem;">Scooter Models</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Model Name</th>
-                    <th>Range</th>
-                    <th>Price</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for model in results.scooter_models %}
-                <tr>
-                    <td style="font-weight: 600;">{{ model.name }}</td>
-                    <td>{{ model.range_km }} km</td>
-                    <td>₹{{ model.last_price }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+    {% if request.user.role == 'ADMIN' %}
+        {% if results.notes %}
+        <div class="card" style="margin-bottom: 2rem; border-left: 4px solid #f59e0b;">
+            <h2 style="color: #f59e0b; margin-bottom: 1rem;">Shop Notepad (Admin Only)</h2>
+            <table>
+                <tbody>
+                    {% for note in results.notes %}
+                    <tr>
+                        <td style="font-weight: 600; width: 200px;">{{ note.title }}</td>
+                        <td style="color: var(--text-muted);">{{ note.content|truncatechars:100 }}</td>
+                        <td><a href="{% url 'notes_list' %}" style="color: #f59e0b;">View</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        {% if results.templates %}
+        <div class="card" style="margin-bottom: 2rem;">
+            <h2 style="color: var(--primary); margin-bottom: 1rem;">Workflow Templates (Admin Only)</h2>
+            <table>
+                <tbody>
+                    {% for t in results.templates %}
+                    <tr>
+                        <td style="font-weight: 600;">{{ t.name }}</td>
+                        <td>Prefix: {{ t.prefix }}</td>
+                        <td><a href="{% url 'template_list' %}" style="color: var(--primary);">Manage</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+        
+        {% if results.customers %}
+        <div class="card" style="margin-bottom: 2rem;">
+            <h2 style="color: var(--primary); margin-bottom: 1rem;">Customers (Admin Only)</h2>
+            <table>
+                <tbody>
+                    {% for c in results.customers %}
+                    <tr>
+                        <td style="font-weight: 600;">{{ c.get_full_name }}</td>
+                        <td>{{ c.phone_number }}</td>
+                        <td><a href="{% url 'manage_customers' %}" style="color: var(--primary);">View CRM</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
     {% endif %}
 
 {% endif %}

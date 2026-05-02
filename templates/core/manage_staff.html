@@ -11,14 +11,6 @@
     </div>
 </div>
 
-{% if messages %}
-    {% for message in messages %}
-        <div style="background: {% if message.tags == 'error' %}var(--danger){% else %}var(--success){% endif %}; color: white; padding: 1rem; border-radius: var(--radius); margin-bottom: 1.5rem;">
-            {{ message }}
-        </div>
-    {% endfor %}
-{% endif %}
-
 <div class="grid">
     <div class="card">
         <h2 style="margin-bottom: 1.5rem;">{% trans "System Users" %}</h2>

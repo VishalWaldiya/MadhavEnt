@@ -140,6 +140,10 @@
             padding: 0.5rem;
             border-radius: 8px;
         }
+        @keyframes slideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
@@ -193,6 +197,13 @@
         </div>
         
         <div class="content-area">
+            {% if messages %}
+                {% for message in messages %}
+                    <div style="background: {% if message.tags == 'error' %}var(--danger){% else %}var(--success){% endif %}; color: white; padding: 1rem; border-radius: var(--radius); margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); animation: slideIn 0.3s ease-out;">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
             {% block content %}{% endblock %}
         </div>
     </div>

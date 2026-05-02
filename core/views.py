@@ -76,46 +76,104 @@ from django.db.models import Q
 @login_required
 def global_search(request):
     q = request.GET.get('q', '').strip()
-    
     results = {
         'inventory_items': [],
         'scooter_models': [],
         'sales': [],
-        'leads': []
+        'leads': [],
+        'customers': [],
+        'tasks': [],
+        'notes': [],
+        'templates': []
     }
     
     if q:
-        # Search Inventory Items
-        results['inventory_items'] = StockItem.objects.filter(
-            Q(serial_number__icontains=q) | Q(name__icontains=q)
-        )
+        from django.db.models import Q
+        from inventory.models import StockItem, ScooterModel
+        from sales.models import SaleRecord
+        from leads.models import Lead
+        from tasks.models import ShopTask, TaskTemplate
+        from core.models import Note
+        from django.contrib.auth import get_user_model
+        from django.urls import reverse
+        User = get_user_model()
+
+        q_lower = q.lower()
+
+        # 1. Exact Match & Keyword Redirection Logic
+        # A. Keyword Redirections (Admin Only)
+        if request.user.role == 'ADMIN':
+            if q_lower in ['gst', 'report', 'gst report']:
+                return redirect(reverse('gst_report'))
+            if q_lower in ['staff', 'manage staff']:
+                return redirect(reverse('manage_staff'))
+            if q_lower in ['customers', 'crm', 'manage customers']:
+                return redirect(reverse('manage_customers'))
+            if q_lower in ['notes', 'notepad', 'shop notepad']:
+                return redirect(reverse('notes_list'))
+            if q_lower in ['inventory', 'stock']:
+                return redirect(reverse('inventory_list'))
+            if q_lower in ['sales module', 'sales list']:
+                return redirect(reverse('sales_list'))
+
+        # B. Keyword Redirections (All Staff)
+        if q_lower in ['leads', 'lead list']:
+            return redirect(reverse('leads_list'))
+        if q_lower in ['tasks', 'board', 'kanban', 'task board']:
+            return redirect(reverse('board_view'))
+        if q_lower in ['asset', 'tracking', 'search asset']:
+            return redirect(reverse('search_asset'))
+
+        # C. Exact ID / Number Redirections
+        # Check for exact Task Number (e.g. REG-1)
+        exact_task = ShopTask.objects.filter(task_number__iexact=q).first()
+        if exact_task:
+            return redirect(reverse('task_detail', args=[exact_task.id]))
+
+        # Check for Invoice ID (e.g. INV-5 or 5)
+        invoice_id = None
+        if q_lower.startswith('inv-'):
+            try: invoice_id = int(q_lower[4:])
+            except: pass
+        elif q.isdigit():
+            invoice_id = int(q)
         
-        # Search Scooter Models
-        results['scooter_models'] = ScooterModel.objects.filter(
-            name__icontains=q
-        )
+        if invoice_id:
+            exact_sale = SaleRecord.objects.filter(id=invoice_id).first()
+            if exact_sale:
+                return redirect(reverse('invoice_view', args=[exact_sale.id]))
+
+        # Check for exact Serial Number Match
+        exact_item = StockItem.objects.filter(serial_number__iexact=q).first()
+        if exact_item:
+            return redirect(f"{reverse('search_asset')}?q={exact_item.serial_number}")
+
+        # 2. General Search Results
+        results['inventory_items'] = StockItem.objects.filter(Q(serial_number__icontains=q) | Q(name__icontains=q))
+        results['scooter_models'] = ScooterModel.objects.filter(name__icontains=q)
         
-        # Search Sales / Invoices
-        sales_query = Q(customer__first_name__icontains=q) | \
-                      Q(customer__last_name__icontains=q) | \
-                      Q(customer__phone_number__icontains=q) | \
-                      Q(customer__aadhar_number__icontains=q) | \
-                      Q(customer__pan_number__icontains=q) | \
-                      Q(gst_number__icontains=q)
-        if q.isdigit():
-            sales_query |= Q(id=int(q))
-            
-        results['sales'] = SaleRecord.objects.filter(sales_query).distinct()
-        
-        # Search Leads
-        results['leads'] = Lead.objects.filter(
-            Q(customer__first_name__icontains=q) | \
-            Q(customer__last_name__icontains=q) | \
-            Q(customer__phone_number__icontains=q) | \
-            Q(customer__aadhar_number__icontains=q) | \
-            Q(customer__pan_number__icontains=q)
+        results['sales'] = SaleRecord.objects.filter(
+            Q(customer__first_name__icontains=q) | Q(customer__last_name__icontains=q) | \
+            Q(customer__phone_number__icontains=q) | Q(gst_number__icontains=q)
         ).distinct()
         
+        results['leads'] = Lead.objects.filter(
+            Q(customer__first_name__icontains=q) | Q(customer__last_name__icontains=q) | \
+            Q(customer__phone_number__icontains=q)
+        ).distinct()
+
+        results['tasks'] = ShopTask.objects.filter(
+            Q(task_number__icontains=q) | Q(title__icontains=q) | Q(external_assignee__icontains=q)
+        ).distinct()
+
+        # 3. ADMIN-ONLY Search Results
+        if request.user.role == 'ADMIN':
+            results['customers'] = User.objects.filter(role='CUSTOMER').filter(
+                Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(phone_number__icontains=q)
+            )
+            results['notes'] = Note.objects.filter(Q(title__icontains=q) | Q(content__icontains=q))
+            results['templates'] = TaskTemplate.objects.filter(Q(name__icontains=q) | Q(prefix__icontains=q))
+            
     return render(request, 'core/global_search_results.html', {'query': q, 'results': results})
 
 @login_required

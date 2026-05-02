@@ -1,17 +1,18 @@
 {% extends 'base.html' %}
 {% load i18n %}
 
-{% block title %}Create Task - EV Stock Manager{% endblock %}
+{% block title %}{% if task %}{% trans "Edit Task" %}{% else %}{% trans "Create Task" %}{% endif %} - EV Stock Manager{% endblock %}
 
 {% block content %}
 <div class="header">
-    <h1>{% trans "Create New Shop Task" %}</h1>
+    <h1>{% if task %}{% trans "Edit Task" %} {{ task.task_number }}{% else %}{% trans "Create New Shop Task" %}{% endif %}</h1>
 </div>
 
 <div class="card" style="max-width: 600px; margin: 0 auto;">
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         
+        {% if not task %}
         <div style="margin-bottom: 1.5rem;">
             <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">{% trans "Select Workflow Template" %}</label>
             <select name="template" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
@@ -21,26 +22,35 @@
                 {% endfor %}
             </select>
         </div>
+        {% endif %}
 
-        <div style="margin-bottom: 1.5rem;">
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">{% trans "Task Title" %}</label>
-            <input type="text" name="title" required placeholder="e.g. Chassis Verification for RTO" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">{% trans "Task Title" %}</label>
+                <input type="text" name="title" value="{{ task.title|default:'' }}" required placeholder="e.g. Chassis Verification" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">{% trans "Assignee Name (Text)" %}</label>
+                <input type="text" name="external_assignee" value="{{ task.external_assignee|default:'' }}" placeholder="e.g. Rahul Sharma" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
+            </div>
         </div>
         
         <div style="margin-bottom: 1.5rem;">
             <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">{% trans "Description / Extra Details" %}</label>
-            <textarea name="description" rows="5" placeholder="{% trans "Add any specific instructions or details here..." %}" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);"></textarea>
+            <textarea name="description" rows="5" placeholder="{% trans "Add any specific instructions or details here..." %}" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">{{ task.description|default:'' }}</textarea>
         </div>
 
+        {% if not task %}
         <div style="margin-bottom: 2rem;">
             <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">{% trans "Attach Photos" %}</label>
             <input type="file" name="photos" multiple accept="image/*" capture="environment" style="width: 100%; padding: 0.5rem; color: white; border: 1px dashed var(--border-color); border-radius: 8px;">
             <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">{% trans "You can upload multiple photos (Handover photos, documents, etc.)" %}</p>
         </div>
+        {% endif %}
 
         <div style="display: flex; gap: 1rem;">
-            <a href="{% url 'board_view' %}" class="btn" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); flex: 1; text-align: center;">{% trans "Cancel" %}</a>
-            <button type="submit" class="btn" style="flex: 2;">{% trans "Create Task" %}</button>
+            <a href="{% if task %}{% url 'task_detail' task.id %}{% else %}{% url 'board_view' %}{% endif %}" class="btn" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); flex: 1; text-align: center;">{% trans "Cancel" %}</a>
+            <button type="submit" class="btn" style="flex: 2;">{% if task %}{% trans "Save Changes" %}{% else %}{% trans "Create Task" %}{% endif %}</button>
         </div>
     </form>
 </div>

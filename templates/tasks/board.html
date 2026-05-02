@@ -18,8 +18,8 @@
         background: var(--bg-color);
         border: 1px solid var(--border-color);
         border-radius: var(--radius);
-        min-width: 320px;
-        max-width: 320px;
+        min-width: 280px;
+        max-width: 280px;
         display: flex;
         flex-direction: column;
         max-height: 80vh;
@@ -51,6 +51,22 @@
     }
     .task-card:active { cursor: grabbing; }
     .task-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+    
+    .task-completed {
+        border-color: var(--success) !important;
+        background: rgba(16, 185, 129, 0.05);
+    }
+    .task-completed h4 {
+        color: var(--success);
+    }
+    .task-completed::after {
+        content: "✓ Completed";
+        display: block;
+        font-size: 0.7rem;
+        color: var(--success);
+        font-weight: 700;
+        margin-top: 0.5rem;
+    }
     
     .dragging { opacity: 0.5; }
     .drag-over { background: rgba(59, 130, 246, 0.1); border: 2px dashed var(--primary); }
@@ -94,7 +110,7 @@
 {% if active_template %}
 <div class="kanban-container">
     {% for stage in stages %}
-    <div class="kanban-column" data-stage-id="{{ stage.id }}">
+    <div class="kanban-column" data-stage-id="{{ stage.id }}" data-stage-type="{{ stage.stage_type }}">
         <div class="column-header">
             <h3 style="font-size: 1rem; font-weight: 700;">{{ stage.name }}</h3>
             <span style="background: var(--primary); color: white; padding: 0.1rem 0.6rem; border-radius: 12px; font-size: 0.75rem;">
@@ -103,7 +119,14 @@
         </div>
         <div class="column-body" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
             {% for task in tasks_by_stage|dict_get:stage.id %}
-            <div class="task-card" draggable="true" ondragstart="drag(event)" id="task-{{ task.id }}" data-task-id="{{ task.id }}">
+            <div class="task-card {% if task.current_stage.stage_type == 'END' %}task-completed{% endif %}" draggable="true" ondragstart="drag(event)" id="task-{{ task.id }}" data-task-id="{{ task.id }}">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                    <span style="font-size: 0.75rem; font-weight: 700; background: var(--bg-color); padding: 0.1rem 0.4rem; border-radius: 4px; border: 1px solid var(--border-color);">
+                        {{ task.task_number }}
+                    </span>
+                    <a href="{% url 'task_detail' task.id %}" style="font-size: 0.75rem; color: var(--primary);">{% trans "Details →" %}</a>
+                </div>
+                
                 <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem;">{{ task.title }}</h4>
                 <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
                     {{ task.description|default:"" }}
@@ -114,9 +137,16 @@
                 {% endif %}
                 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color);">
-                    <span style="font-size: 0.7rem; color: var(--text-muted);">
-                        <i style="color: var(--primary);">👤</i> {{ task.assigned_to.username }}
-                    </span>
+                    <div style="display: flex; flex-direction: column; gap: 0.1rem;">
+                        <span style="font-size: 0.7rem; color: var(--text-muted);">
+                            <i style="color: var(--primary);">👤</i> {{ task.assigned_to.username }}
+                        </span>
+                        {% if task.external_assignee %}
+                        <span style="font-size: 0.7rem; color: var(--success); font-weight: 600;">
+                            {% trans "Working:" %} {{ task.external_assignee }}
+                        </span>
+                        {% endif %}
+                    </div>
                     
                     <div class="fallback-move" style="display: flex; gap: 0.25rem;">
                         <form action="{% url 'update_task_stage' task.id %}" method="post" style="margin:0;">
@@ -167,10 +197,19 @@
         card.classList.remove('dragging');
         
         const taskId = card.getAttribute('data-task-id');
-        const newStageId = container.closest('.kanban-column').getAttribute('data-stage-id');
+        const column = container.closest('.kanban-column');
+        const newStageId = column.getAttribute('data-stage-id');
+        const newStageType = column.getAttribute('data-stage-type');
         
         // Optimistic UI move
         container.appendChild(card);
+
+        // Update card styling based on stage type
+        if (newStageType === 'END') {
+            card.classList.add('task-completed');
+        } else {
+            card.classList.remove('task-completed');
+        }
         
         // Ajax request to update
         fetch(`/tasks/update/${taskId}/`, {
