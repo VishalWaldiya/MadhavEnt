@@ -15,46 +15,64 @@
     <div class="header" style="margin-bottom: 1rem;">
         <h2>Sale Records</h2>
     </div>
-    <div class="table-responsive">
-    <table>
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Customer</th>
-                <th>Model</th>
-                <th>Chassis No.</th>
-                <th>Amount</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for sale in sales %}
-            <tr>
-                <td>{{ sale.sale_date|date:"M d, Y H:i" }}</td>
-                <td style="font-weight: 600;">{{ sale.customer.get_full_name|default:"Unknown" }}</td>
-                <td>{{ sale.scooter_model.name }}</td>
-                <td style="font-family: monospace;">{{ sale.chassis_number.serial_number }}</td>
-                <td>₹{{ sale.total_amount }}</td>
-                <td style="display: flex; gap: 0.5rem; align-items: center;">
-                    <a href="{% url 'invoice_view' sale.id %}" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600;">📄 Invoice</a>
+    <form id="bulk-form-salerecord" action="{% url 'bulk_soft_delete' 'salerecord' %}" method="post">
+        {% csrf_token %}
+        <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
                     {% if request.user.role == 'ADMIN' %}
-                    <form action="{% url 'delete_sale' sale.id %}" method="post" style="margin: 0;" onsubmit="return confirm('Move sale INV-{{ sale.id }} to Recycle Bin?');">
-                        {% csrf_token %}
-                        <button type="submit" class="btn" style="background: var(--danger); padding: 0.2rem 0.5rem; font-size: 0.75rem;">Delete</button>
-                    </form>
+                    <th style="width: 40px;"><input type="checkbox" onchange="toggleSelectAll(this, 'bulk-form-salerecord')" title="Select All"></th>
                     {% endif %}
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted)">
-                    No sales recorded yet.
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    </div>
+                    <th>Date</th>
+                    <th>Customer</th>
+                    <th>Model</th>
+                    <th>Chassis No.</th>
+                    <th>Amount</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in sales %}
+                <tr>
+                    {% if request.user.role == 'ADMIN' %}
+                    <td><input type="checkbox" name="selected_ids" value="{{ sale.id }}" onchange="updateBulkBar('bulk-form-salerecord')"></td>
+                    {% endif %}
+                    <td>{{ sale.sale_date|date:"M d, Y H:i" }}</td>
+                    <td style="font-weight: 600;">{{ sale.customer.get_full_name|default:"Unknown" }}</td>
+                    <td>{{ sale.scooter_model.name }}</td>
+                    <td style="font-family: monospace;">{{ sale.chassis_number.serial_number }}</td>
+                    <td>₹{{ sale.total_amount }}</td>
+                    <td style="display: flex; gap: 0.5rem; align-items: center;">
+                        <a href="{% url 'invoice_view' sale.id %}" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600;">📄 Invoice</a>
+                        {% if request.user.role == 'ADMIN' %}
+                        <form action="{% url 'delete_sale' sale.id %}" method="post" style="margin: 0;" onsubmit="return confirm('Move sale INV-{{ sale.id }} to Recycle Bin?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn" style="background: var(--danger); padding: 0.2rem 0.5rem; font-size: 0.75rem;">Delete</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted)">
+                        No sales recorded yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+
+        {% if request.user.role == 'ADMIN' %}
+        <div id="bulk-bar-bulk-form-salerecord" style="display: none; background: var(--card-bg); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+            <span style="color: var(--text-color); font-weight: 500;">Selected <strong id="bulk-count-bulk-form-salerecord" style="color: var(--primary);">0</strong> sale record(s)</span>
+            <button type="submit" class="btn" style="background: var(--danger); font-size: 0.85rem; padding: 0.4rem 1rem;">
+                🗑️ Soft Delete Selected Sales
+            </button>
+        </div>
+        {% endif %}
+    </form>
 </div>
 
 {% endblock %}

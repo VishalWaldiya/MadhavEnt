@@ -14,46 +14,67 @@
 <div class="grid">
     <div class="card">
         <h2 style="margin-bottom: 1.5rem;">{% trans "System Users" %}</h2>
-        <div class="table-responsive">
-        <table>
-            <thead>
-                <tr>
-                    <th>{% trans "Username" %}</th>
-                    <th>{% trans "Role" %}</th>
-                    <th>{% trans "Date Joined" %}</th>
-                    {% if request.user.role == 'ADMIN' %}
-                    <th>{% trans "Action" %}</th>
-                    {% endif %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for u in staff %}
-                <tr>
-                    <td style="font-weight: 600;">{{ u.username }}</td>
-                    <td>
-                        <span style="background: {% if u.role == 'ADMIN' %}var(--danger){% else %}var(--primary){% endif %}; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; color: white;">
-                            {{ u.get_role_display }}
-                        </span>
-                    </td>
-                    <td>{{ u.date_joined|date:"M d, Y" }}</td>
-                    {% if request.user.role == 'ADMIN' %}
-                    <td>
-                        {% if u.id != request.user.id %}
-                        <form action="{% url 'delete_staff' u.id %}" method="post" style="margin: 0;" onsubmit="return confirm('Are you sure you want to move {{ u.username }} to Recycle Bin?');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn" style="background: var(--danger); padding: 0.25rem 0.6rem; font-size: 0.75rem;">{% trans "Delete" %}</button>
-                        </form>
-                        {% else %}
-                        <span style="color: var(--text-muted); font-size: 0.75rem;">(Current User)</span>
+        <form id="bulk-form-user" action="{% url 'bulk_soft_delete' 'user' %}" method="post">
+            {% csrf_token %}
+            <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        {% if request.user.role == 'ADMIN' %}
+                        <th style="width: 40px;"><input type="checkbox" onchange="toggleSelectAll(this, 'bulk-form-user')" title="Select All"></th>
                         {% endif %}
-                    </td>
-                    {% endif %}
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        </div>
+                        <th>{% trans "Username" %}</th>
+                        <th>{% trans "Role" %}</th>
+                        <th>{% trans "Date Joined" %}</th>
+                        {% if request.user.role == 'ADMIN' %}
+                        <th>{% trans "Action" %}</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in staff %}
+                    <tr>
+                        {% if request.user.role == 'ADMIN' %}
+                        <td>
+                            {% if u.id != request.user.id %}
+                            <input type="checkbox" name="selected_ids" value="{{ u.id }}" onchange="updateBulkBar('bulk-form-user')">
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                        <td style="font-weight: 600;">{{ u.username }}</td>
+                        <td>
+                            <span style="background: {% if u.role == 'ADMIN' %}var(--danger){% else %}var(--primary){% endif %}; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; color: white;">
+                                {{ u.get_role_display }}
+                            </span>
+                        </td>
+                        <td>{{ u.date_joined|date:"M d, Y" }}</td>
+                        {% if request.user.role == 'ADMIN' %}
+                        <td>
+                            {% if u.id != request.user.id %}
+                            <form action="{% url 'delete_staff' u.id %}" method="post" style="margin: 0;" onsubmit="return confirm('Are you sure you want to move {{ u.username }} to Recycle Bin?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn" style="background: var(--danger); padding: 0.25rem 0.6rem; font-size: 0.75rem;">{% trans "Delete" %}</button>
+                            </form>
+                            {% else %}
+                            <span style="color: var(--text-muted); font-size: 0.75rem;">(Current User)</span>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
 
+            {% if request.user.role == 'ADMIN' %}
+            <div id="bulk-bar-bulk-form-user" style="display: none; background: var(--card-bg); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                <span style="color: var(--text-color); font-weight: 500;">Selected <strong id="bulk-count-bulk-form-user" style="color: var(--primary);">0</strong> staff member(s)</span>
+                <button type="submit" class="btn" style="background: var(--danger); font-size: 0.85rem; padding: 0.4rem 1rem;">
+                    🗑️ Soft Delete Selected Staff
+                </button>
+            </div>
+            {% endif %}
+        </form>
     </div>
 
     <div class="card">

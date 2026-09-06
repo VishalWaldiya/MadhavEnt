@@ -29,9 +29,14 @@ urlpatterns = [
     path('manifest.json', core_views.manifest_view, name='manifest'),
     path('sw.js', core_views.serviceworker_view, name='service_worker'),
     path('offline/', core_views.offline_view, name='offline'),
+    path('notifications/vapid-public-key/', core_views.vapid_public_key_view, name='vapid_public_key'),
     path('notifications/subscribe/', core_views.subscribe_push_device, name='subscribe_push_device'),
     path('notifications/preferences/', core_views.update_notification_preferences, name='update_notification_preferences'),
     path('notifications/get/', core_views.get_user_notifications, name='get_user_notifications'),
     path('admin-controls/broadcast-notification/', core_views.broadcast_notification_view, name='broadcast_notification'),
+    path('admin-controls/bulk-delete/<str:model_name>/', core_views.bulk_soft_delete_items, name='bulk_soft_delete'),
+    path('admin-controls/recycle-bin/bulk-restore/<str:model_name>/', core_views.bulk_restore_items, name='bulk_restore'),
+    path('admin-controls/recycle-bin/bulk-hard-delete/<str:model_name>/', core_views.bulk_hard_delete_items, name='bulk_hard_delete'),
 ]
+
 

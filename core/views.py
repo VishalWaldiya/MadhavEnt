@@ -449,6 +449,170 @@ def empty_recycle_bin(request):
     return redirect('recycle_bin')
 
 
+@login_required
+def bulk_soft_delete_items(request, model_name):
+    if request.method != 'POST':
+        return redirect('dashboard')
+
+    from tasks.models import ShopTask, TaskTemplate
+    from core.models import Note
+
+    model_map = {
+        'user': User,
+        'note': Note,
+        'stockitem': StockItem,
+        'scootermodel': ScooterModel,
+        'salerecord': SaleRecord,
+        'lead': Lead,
+        'shoptask': ShopTask,
+        'tasktemplate': TaskTemplate,
+    }
+
+    model = model_map.get(model_name.lower())
+    if not model:
+        messages.error(request, 'Invalid resource model.')
+        return redirect('dashboard')
+
+    if request.user.role != 'ADMIN' and model_name.lower() in ['user', 'note', 'tasktemplate', 'scootermodel']:
+        messages.error(request, 'Access denied. Administrator privileges required.')
+        return redirect('dashboard')
+
+    selected_ids = request.POST.getlist('selected_ids')
+    if not selected_ids:
+        messages.warning(request, 'No items selected for deletion.')
+        return redirect(request.META.get('HTTP_REFERER') or 'dashboard')
+
+    items = list(model.objects.filter(id__in=selected_ids))
+    if not items:
+        messages.warning(request, 'Selected items could not be found.')
+        return redirect(request.META.get('HTTP_REFERER') or 'dashboard')
+
+    all_connected = []
+    seen_keys = set()
+    for item in items:
+        if hasattr(item, 'get_connected_resources'):
+            connected = item.get_connected_resources(include_deleted=False)
+            for c in connected:
+                key = f"{c['type']}_{c['id']}"
+                if key not in seen_keys:
+                    seen_keys.add(key)
+                    all_connected.append(c)
+
+    if all_connected and request.POST.get('confirmed') != '1':
+        item_titles = [str(i) for i in items[:5]]
+        title_str = ", ".join(item_titles)
+        if len(items) > 5:
+            title_str += f" (+{len(items) - 5} more)"
+
+        return render(request, 'core/delete_confirm.html', {
+            'item_type': f"Multiple {model._meta.verbose_name_plural.title()} ({len(items)} items)",
+            'item_title': title_str,
+            'connected_items': all_connected,
+            'selected_ids': selected_ids,
+            'action_url': reverse('bulk_soft_delete', args=[model_name]),
+            'cancel_url': request.META.get('HTTP_REFERER') or reverse('dashboard'),
+        })
+
+    deleted_count = 0
+    for item in items:
+        item.delete(cascade=True)
+        deleted_count += 1
+
+    msg = f'Successfully moved {deleted_count} {model._meta.verbose_name_plural.title()} to Recycle Bin.'
+    if all_connected:
+        msg += f' ({len(all_connected)} connected resource(s) also soft-deleted).'
+    messages.success(request, msg)
+
+    return redirect(request.META.get('HTTP_REFERER') or 'dashboard')
+
+
+@login_required
+def bulk_restore_items(request, model_name):
+    if request.user.role != 'ADMIN':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        from tasks.models import ShopTask, TaskTemplate
+        from core.models import Note
+
+        model_map = {
+            'user': User,
+            'note': Note,
+            'stockitem': StockItem,
+            'scootermodel': ScooterModel,
+            'salerecord': SaleRecord,
+            'lead': Lead,
+            'shoptask': ShopTask,
+            'tasktemplate': TaskTemplate,
+        }
+
+        model = model_map.get(model_name.lower())
+        if not model:
+            messages.error(request, 'Invalid model.')
+            return redirect('recycle_bin')
+
+        selected_ids = request.POST.getlist('selected_ids')
+        items = list(model.all_objects.filter(id__in=selected_ids, is_deleted=True))
+
+        restored_count = 0
+        for item in items:
+            item.restore(cascade=True)
+            restored_count += 1
+
+        messages.success(request, f'Restored {restored_count} {model._meta.verbose_name_plural.title()} successfully.')
+
+    return redirect('recycle_bin')
+
+
+@login_required
+def bulk_hard_delete_items(request, model_name):
+    if request.user.role != 'ADMIN':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        from tasks.models import ShopTask, TaskTemplate
+        from core.models import Note
+
+        model_map = {
+            'user': User,
+            'note': Note,
+            'stockitem': StockItem,
+            'scootermodel': ScooterModel,
+            'salerecord': SaleRecord,
+            'lead': Lead,
+            'shoptask': ShopTask,
+            'tasktemplate': TaskTemplate,
+        }
+
+        model = model_map.get(model_name.lower())
+        if not model:
+            messages.error(request, 'Invalid model.')
+            return redirect('recycle_bin')
+
+        selected_ids = request.POST.getlist('selected_ids')
+        items = list(model.all_objects.filter(id__in=selected_ids, is_deleted=True))
+
+        deleted_count = 0
+        protected_count = 0
+
+        for item in items:
+            try:
+                item.delete(hard=True)
+                deleted_count += 1
+            except ProtectedError:
+                protected_count += 1
+
+        if protected_count > 0:
+            messages.warning(request, f'Permanently deleted {deleted_count} item(s). {protected_count} item(s) could not be deleted because they are referenced by active records.')
+        else:
+            messages.success(request, f'Permanently deleted {deleted_count} {model._meta.verbose_name_plural.title()}.')
+
+    return redirect('recycle_bin')
+
+
+
 def manifest_view(request):
     manifest_path = os.path.join(settings.BASE_DIR, 'static', 'manifest.json')
     if os.path.exists(manifest_path):
@@ -472,6 +636,12 @@ def offline_view(request):
     return render(request, 'offline.html')
 
 
+@login_required
+def vapid_public_key_view(request):
+    public_key = getattr(settings, 'VAPID_PUBLIC_KEY', '')
+    return JsonResponse({'public_key': public_key})
+
+
 def dispatch_push_notification(category, title, message, target_url='/', sender=None):
     log = BroadcastNotificationLog.objects.create(
         category=category,
@@ -493,14 +663,61 @@ def dispatch_push_notification(category, title, message, target_url='/', sender=
         Q(notification_preference__isnull=True) | Q(**{f'notification_preference__{field}': True})
     )
     
-    if sender:
+    # For BROADCAST announcements, include all registered users/devices (including sender)
+    # For action events like SALE and TASK_COMMENT, exclude sender so they aren't notified of their own action
+    if sender and category != 'BROADCAST':
         users = users.exclude(id=sender.id)
         
     subscriptions = PushDeviceSubscription.objects.filter(user__in=users)
+    subscriptions_count = subscriptions.count()
+    
+    # Real Web Push Delivery via pywebpush (if VAPID keys and subscriptions are present)
+    vapid_private_key = getattr(settings, 'VAPID_PRIVATE_KEY', None)
+    vapid_claims = getattr(settings, 'VAPID_CLAIMS', {"sub": "mailto:admin@shrimadhaventerprises.in"})
+    
+    if vapid_private_key and subscriptions.exists():
+        try:
+            from pywebpush import webpush, WebPushException
+            payload = json.dumps({
+                'title': title,
+                'body': message,
+                'target_url': target_url,
+                'category': category,
+                'icon': '/static/icons/icon-192.png',
+                'badge': '/static/icons/icon-192.png',
+                'tag': f'ev-{category.lower()}-{log.id}'
+            })
+            
+            for sub in list(subscriptions):
+                if sub.p256dh and sub.auth and sub.endpoint.startswith('http'):
+                    subscription_info = {
+                        "endpoint": sub.endpoint,
+                        "keys": {
+                            "p256dh": sub.p256dh,
+                            "auth": sub.auth
+                        }
+                    }
+                    try:
+                        webpush(
+                            subscription_info=subscription_info,
+                            data=payload,
+                            vapid_private_key=vapid_private_key,
+                            vapid_claims=vapid_claims,
+                            timeout=5
+                        )
+                    except WebPushException as ex:
+                        response = getattr(ex, 'response', None)
+                        if response is not None and response.status_code in [404, 410]:
+                            sub.delete()
+                    except Exception:
+                        pass
+        except ImportError:
+            pass
+            
     return {
         'log_id': log.id,
         'targeted_users': list(users.values_list('id', flat=True)),
-        'subscriptions_count': subscriptions.count()
+        'subscriptions_count': subscriptions_count
     }
 
 
@@ -595,5 +812,9 @@ def broadcast_notification_view(request):
             messages.error(request, 'Please provide both title and message.')
             
     recent_broadcasts = BroadcastNotificationLog.objects.filter(category='BROADCAST')[:10]
-    return render(request, 'core/broadcast_notification.html', {'recent_broadcasts': recent_broadcasts})
+    total_devices = PushDeviceSubscription.objects.count()
+    return render(request, 'core/broadcast_notification.html', {
+        'recent_broadcasts': recent_broadcasts,
+        'total_devices': total_devices
+    })
 

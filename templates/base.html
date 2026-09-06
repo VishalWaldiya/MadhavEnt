@@ -212,6 +212,33 @@
             align-items: center;
             gap: 0.3rem;
         }
+
+        /* Modal Styles */
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(3px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .modal-backdrop.active {
+            display: flex;
+        }
+        .modal-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+            max-width: 500px;
+            width: 100%;
+            padding: 1.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);
+            max-height: 85vh;
+            overflow-y: auto;
+        }
         
         @keyframes slideIn {
             from { transform: translateY(-20px); opacity: 0; }
@@ -284,6 +311,7 @@
             <a href="{% url 'manage_customers' %}" style="color: var(--primary);">🤝 {% trans "Manage Customers" %}</a>
             <a href="{% url 'notes_list' %}" style="color: #f59e0b;">📝 {% trans "Shop Notepad" %}</a>
             <a href="{% url 'template_list' %}">📋 {% trans "Workflow Templates" %}</a>
+            <a href="{% url 'broadcast_notification' %}" style="color: #06b6d4;">📢 {% trans "Broadcast Push" %}</a>
             <a href="{% url 'recycle_bin' %}" style="color: var(--danger); font-weight: 600;">🗑️ {% trans "Recycle Bin" %}</a>
         {% endif %}
         
@@ -310,6 +338,10 @@
 
             <button id="pwa-install-btn" class="pwa-install-btn">📲 {% trans "Install App" %}</button>
             <button class="theme-toggle" id="fullscreen-btn" title="Toggle Fullscreen">⛶ Fullscreen</button>
+
+            {% if request.user.is_authenticated %}
+            <button class="theme-toggle" id="notif-modal-btn">🔔 {% trans "Notifications" %}</button>
+            {% endif %}
 
             <form action="{% url 'set_language' %}" method="post">{% csrf_token %}
                 <input name="next" type="hidden" value="{{ redirect_to }}">
@@ -341,6 +373,71 @@
             {% block content %}{% endblock %}
         </div>
     </div>
+
+    <!-- Notification Preferences & In-App Alerts Modal -->
+    {% if request.user.is_authenticated %}
+    <div class="modal-backdrop" id="notif-modal">
+        <div class="modal-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+                <h3 style="color: var(--primary); font-size: 1.2rem;">🔔 {% trans "Push & Alert Settings" %}</h3>
+                <button id="close-notif-modal" style="background: transparent; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+            </div>
+
+            <!-- Device Web Push Registration -->
+            <div style="background: var(--bg-color); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 1.5rem;">
+                <h4 style="font-size: 0.95rem; margin-bottom: 0.4rem;">📱 {% trans "Device Web Push Status" %}</h4>
+                <p id="push-status-text" style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                    {% trans "Enable native device notifications for instant alerts." %}
+                </p>
+                <button id="enable-web-push-btn" class="btn" style="width: 100%; font-size: 0.85rem; padding: 0.4rem;">
+                    🔔 {% trans "Enable Device Notifications" %}
+                </button>
+                <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.5rem; line-height: 1.3;">
+                    💡 <em>{% trans "iPhone/iPad users: Add this app to Home Screen via Safari Share menu (📤) first to receive native notifications." %}</em>
+                </p>
+            </div>
+
+            <!-- Notification Subscription Preferences -->
+            <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem;">⚙️ {% trans "Configurable Event Subscriptions" %}</h4>
+            <form id="notif-pref-form" action="{% url 'update_notification_preferences' %}" method="post" style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem;">
+                {% csrf_token %}
+                <label style="display: flex; align-items: center; gap: 0.75rem; font-size: 0.9rem; cursor: pointer; background: var(--bg-color); padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border-color);">
+                    <input type="checkbox" id="pref-sale" name="notify_on_sale" style="min-height: 18px; width: 18px;">
+                    <div>
+                        <strong>🛍️ {% trans "Sales Alerts" %}</strong>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">{% trans "Notify when new sales are recorded" %}</div>
+                    </div>
+                </label>
+
+                <label style="display: flex; align-items: center; gap: 0.75rem; font-size: 0.9rem; cursor: pointer; background: var(--bg-color); padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border-color);">
+                    <input type="checkbox" id="pref-comment" name="notify_on_task_comment" style="min-height: 18px; width: 18px;">
+                    <div>
+                        <strong>💬 {% trans "Task & Comment Alerts" %}</strong>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">{% trans "Notify when task comments are posted" %}</div>
+                    </div>
+                </label>
+
+                <label style="display: flex; align-items: center; gap: 0.75rem; font-size: 0.9rem; cursor: pointer; background: var(--bg-color); padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border-color);">
+                    <input type="checkbox" id="pref-broadcast" name="notify_on_broadcast" style="min-height: 18px; width: 18px;">
+                    <div>
+                        <strong>📢 {% trans "System Broadcast Announcements" %}</strong>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">{% trans "Receive urgent text broadcasts" %}</div>
+                    </div>
+                </label>
+
+                <button type="submit" class="btn" style="background: var(--success); margin-top: 0.5rem; font-size: 0.85rem; padding: 0.4rem;">
+                    💾 {% trans "Save Preferences" %}
+                </button>
+            </form>
+
+            <!-- Recent Notifications Log -->
+            <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem;">📋 {% trans "Recent In-App Notifications" %}</h4>
+            <div id="in-app-notif-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 200px; overflow-y: auto;">
+                <p style="font-size: 0.8rem; color: var(--text-muted);">{% trans "Loading notifications..." %}</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <script>
         // Theme Toggle Logic
@@ -407,6 +504,180 @@
             overlay.addEventListener('click', toggleSidebar);
         }
 
+        // Notification Modal & Web Push Registration
+        const notifModalBtn = document.getElementById('notif-modal-btn');
+        const notifModal = document.getElementById('notif-modal');
+        const closeNotifModal = document.getElementById('close-notif-modal');
+
+        if (notifModalBtn && notifModal) {
+            notifModalBtn.addEventListener('click', () => {
+                notifModal.classList.add('active');
+                loadNotifPreferences();
+                loadInAppNotifications();
+            });
+        }
+        if (closeNotifModal && notifModal) {
+            closeNotifModal.addEventListener('click', () => {
+                notifModal.classList.remove('active');
+            });
+        }
+
+        function loadNotifPreferences() {
+            fetch('/notifications/preferences/')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('pref-sale').checked = !!data.notify_on_sale;
+                    document.getElementById('pref-comment').checked = !!data.notify_on_task_comment;
+                    document.getElementById('pref-broadcast').checked = !!data.notify_on_broadcast;
+                }).catch(() => {});
+        }
+
+        function loadInAppNotifications() {
+            const container = document.getElementById('in-app-notif-list');
+            if (!container) return;
+
+            fetch('/notifications/get/')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.notifications && data.notifications.length > 0) {
+                        container.innerHTML = data.notifications.map(n => `
+                            <a href="${n.target_url}" style="text-decoration: none; color: inherit;">
+                                <div style="background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px; padding: 0.5rem 0.75rem;">
+                                    <div style="display: flex; justify-content: space-between; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.2rem; color: var(--primary);">
+                                        <span>${n.title}</span>
+                                        <span style="font-size: 0.7rem; color: var(--text-muted);">${n.sent_at}</span>
+                                    </div>
+                                    <div style="font-size: 0.8rem; color: var(--text-color);">${n.message}</div>
+                                </div>
+                            </a>
+                        `).join('');
+                    } else {
+                        container.innerHTML = `<p style="font-size: 0.8rem; color: var(--text-muted); font-style: italic;">No notifications recorded.</p>`;
+                    }
+                }).catch(() => {});
+        }
+
+        // Web Push Registration Helper
+        const enableWebPushBtn = document.getElementById('enable-web-push-btn');
+        const pushStatusText = document.getElementById('push-status-text');
+
+        function urlB64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding)
+                .replace(/\-/g, '+')
+                .replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+
+        function updatePushStatusUI() {
+            if (!('Notification' in window)) {
+                if (pushStatusText) pushStatusText.innerText = "Browser does not support notifications.";
+                if (enableWebPushBtn) enableWebPushBtn.disabled = true;
+                return;
+            }
+
+            if (Notification.permission === 'granted') {
+                if (pushStatusText) pushStatusText.innerText = "✓ Device Notifications are Active!";
+                if (enableWebPushBtn) {
+                    enableWebPushBtn.innerText = "✓ Push Notifications Active";
+                    enableWebPushBtn.style.background = "var(--success)";
+                }
+            } else if (Notification.permission === 'denied') {
+                if (pushStatusText) pushStatusText.innerText = "⚠️ Notifications blocked in browser settings.";
+            }
+        }
+
+        async function registerPushSubscription(showPreview = false) {
+            if (!('serviceWorker' in navigator)) {
+                return;
+            }
+
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                let sub = null;
+
+                if ('PushManager' in window) {
+                    try {
+                        const keyRes = await fetch('/notifications/vapid-public-key/');
+                        const keyData = await keyRes.json();
+                        const vapidKey = keyData.public_key;
+
+                        sub = await reg.pushManager.getSubscription();
+                        if (!sub && vapidKey) {
+                            const applicationServerKey = urlB64ToUint8Array(vapidKey);
+                            sub = await reg.pushManager.subscribe({
+                                userVisibleOnly: true,
+                                applicationServerKey: applicationServerKey
+                            });
+                        }
+                    } catch (pushErr) {
+                        console.warn('PushManager subscription notice:', pushErr);
+                    }
+                }
+
+                const endpoint = sub ? sub.endpoint : `webpush-device-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                let p256dh = '';
+                let auth = '';
+
+                if (sub) {
+                    const rawKey = sub.getKey ? sub.getKey('p256dh') : null;
+                    p256dh = rawKey ? btoa(String.fromCharCode.apply(null, new Uint8Array(rawKey))) : '';
+                    const rawAuth = sub.getKey ? sub.getKey('auth') : null;
+                    auth = rawAuth ? btoa(String.fromCharCode.apply(null, new Uint8Array(rawAuth))) : '';
+                }
+
+                await fetch('/notifications/subscribe/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                        endpoint: endpoint,
+                        p256dh: p256dh,
+                        auth: auth,
+                        browser_info: navigator.userAgent
+                    })
+                });
+                console.log('Push device registered successfully.');
+
+                if (showPreview && Notification.permission === 'granted' && reg.showNotification) {
+                    reg.showNotification('⚡ Notifications Enabled!', {
+                        body: 'You will receive instant shop alerts and updates on this device.',
+                        icon: '/static/icons/icon-192.png',
+                        badge: '/static/icons/icon-192.png',
+                        tag: 'ev-welcome-alert'
+                    });
+                }
+            } catch (err) {
+                console.warn('Push registration error:', err);
+            }
+        }
+
+        if (enableWebPushBtn) {
+            updatePushStatusUI();
+            enableWebPushBtn.addEventListener('click', () => {
+                if ('Notification' in window) {
+                    Notification.requestPermission().then((permission) => {
+                        updatePushStatusUI();
+                        if (permission === 'granted') {
+                            registerPushSubscription(true);
+                        }
+                    });
+                }
+            });
+        }
+
+        // Auto-register subscription on page load if permission already granted
+        if ('Notification' in window && Notification.permission === 'granted') {
+            registerPushSubscription(false);
+        }
+
         // PWA Service Worker Registration & Install Prompt
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -442,6 +713,31 @@
                     });
                 }
             });
+        }
+
+        // Global Multi-Select Bulk Actions Helper
+        function toggleSelectAll(master, formId) {
+            const form = document.getElementById(formId);
+            if (!form) return;
+            const checkboxes = form.querySelectorAll('input[name="selected_ids"]');
+            checkboxes.forEach(cb => cb.checked = master.checked);
+            updateBulkBar(formId);
+        }
+
+        function updateBulkBar(formId) {
+            const form = document.getElementById(formId);
+            if (!form) return;
+            const checked = form.querySelectorAll('input[name="selected_ids"]:checked');
+            const bar = document.getElementById('bulk-bar-' + formId);
+            const countEl = document.getElementById('bulk-count-' + formId);
+            if (bar && countEl) {
+                if (checked.length > 0) {
+                    bar.style.display = 'flex';
+                    countEl.textContent = checked.length;
+                } else {
+                    bar.style.display = 'none';
+                }
+            }
         }
     </script>
 </body>

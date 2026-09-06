@@ -54,9 +54,13 @@ self.addEventListener('push', (event) => {
   const options = {
     body: payload.body,
     icon: payload.icon || '/static/icons/icon-192.png',
-    badge: '/static/icons/icon-192.png',
+    badge: payload.badge || '/static/icons/icon-192.png',
     vibrate: [100, 50, 100],
-    data: payload.data || { url: '/' },
+    tag: payload.tag || 'ev-stock-alert',
+    renotify: true,
+    data: {
+      url: payload.target_url || (payload.data && payload.data.url) || '/'
+    },
     actions: [
       { action: 'open', title: 'Open' },
       { action: 'close', title: 'Dismiss' }

@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -33,6 +34,7 @@ CSRF_TRUSTED_ORIGINS = ['https://admin.shrimadhaventerprises.in']
 # Application definition
 
 INSTALLED_APPS = [
+    'core',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -42,7 +44,6 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
-    'core',
     'inventory',
     'sales',
     'leads',
@@ -87,7 +88,7 @@ WSGI_APPLICATION = 'core_project.wsgi.application'
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "test.db",
+        "NAME": BASE_DIR / "test-12.db",
     }
 }
 
@@ -160,3 +161,16 @@ SIMPLE_JWT = {
 AUTH_USER_MODEL = 'core.User'
 LOGOUT_URL = 'login'
 LOGIN_URL = 'login'
+
+# Web Push VAPID Configuration
+VAPID_PUBLIC_KEY = os.environ.get(
+    'VAPID_PUBLIC_KEY',
+    'BJkQ6JDt7neuD4vYoCbXKhgq3OxxfUzWb1RozDW1GUEIKxS641B1gWULVKCWAMNnd9HUaaRBA4YksmyCSuateJQ'
+)
+VAPID_PRIVATE_KEY = os.environ.get(
+    'VAPID_PRIVATE_KEY',
+    '-----BEGIN PRIVATE KEY-----\nMIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgYCcXT7tPPIZ0Ds6b\nRJv2RbIR+LFkFlfwUBRBPuA4YgihRANCAASZEOiQ7e53rg+L2KAm1yoYKtzscX1M\n1m9UaMw1tRlBCCsUuuNQdYFlC1SglgDDZ3fR1GmkQQOGJLJsgkrmrXiU\n-----END PRIVATE KEY-----\n'
+)
+VAPID_CLAIMS = {
+    "sub": os.environ.get('VAPID_CLAIM_SUB', "mailto:admin@shrimadhaventerprises.in")
+}

@@ -11,47 +11,65 @@
 </div>
 
 <div class="card">
-    <div class="table-responsive">
-    <table>
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Phone Number</th>
-                <th>Aadhar Number</th>
-                <th>PAN Number</th>
-                <th>Joined</th>
-                {% if request.user.role == 'ADMIN' %}
-                <th>Action</th>
-                {% endif %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for customer in customers %}
-            <tr>
-                <td style="font-weight: 600;">{{ customer.get_full_name|default:customer.username }}</td>
-                <td>{{ customer.phone_number|default:"-" }}</td>
-                <td style="font-family: monospace;">{{ customer.aadhar_number|default:"-" }}</td>
-                <td style="font-family: monospace;">{{ customer.pan_number|default:"-" }}</td>
-                <td>{{ customer.date_joined|date:"M d, Y" }}</td>
-                {% if request.user.role == 'ADMIN' %}
-                <td>
-                    <form action="{% url 'delete_customer' customer.id %}" method="post" style="margin: 0;" onsubmit="return confirm('Are you sure you want to move customer {{ customer.get_full_name|default:customer.username }} to Recycle Bin?');">
-                        {% csrf_token %}
-                        <button type="submit" class="btn" style="background: var(--danger); padding: 0.25rem 0.6rem; font-size: 0.75rem;">Delete</button>
-                    </form>
-                </td>
-                {% endif %}
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted)">
-                    No customer profiles exist yet. Capturing a lead or sale will automatically create one.
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    </div>
+    <form id="bulk-form-customer" action="{% url 'bulk_soft_delete' 'user' %}" method="post">
+        {% csrf_token %}
+        <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    {% if request.user.role == 'ADMIN' %}
+                    <th style="width: 40px;"><input type="checkbox" onchange="toggleSelectAll(this, 'bulk-form-customer')" title="Select All"></th>
+                    {% endif %}
+                    <th>Name</th>
+                    <th>Phone Number</th>
+                    <th>Aadhar Number</th>
+                    <th>PAN Number</th>
+                    <th>Joined</th>
+                    {% if request.user.role == 'ADMIN' %}
+                    <th>Action</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for customer in customers %}
+                <tr>
+                    {% if request.user.role == 'ADMIN' %}
+                    <td><input type="checkbox" name="selected_ids" value="{{ customer.id }}" onchange="updateBulkBar('bulk-form-customer')"></td>
+                    {% endif %}
+                    <td style="font-weight: 600;">{{ customer.get_full_name|default:customer.username }}</td>
+                    <td>{{ customer.phone_number|default:"-" }}</td>
+                    <td style="font-family: monospace;">{{ customer.aadhar_number|default:"-" }}</td>
+                    <td style="font-family: monospace;">{{ customer.pan_number|default:"-" }}</td>
+                    <td>{{ customer.date_joined|date:"M d, Y" }}</td>
+                    {% if request.user.role == 'ADMIN' %}
+                    <td>
+                        <form action="{% url 'delete_customer' customer.id %}" method="post" style="margin: 0;" onsubmit="return confirm('Are you sure you want to move customer {{ customer.get_full_name|default:customer.username }} to Recycle Bin?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn" style="background: var(--danger); padding: 0.25rem 0.6rem; font-size: 0.75rem;">Delete</button>
+                        </form>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted)">
+                        No customer profiles exist yet. Capturing a lead or sale will automatically create one.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+
+        {% if request.user.role == 'ADMIN' %}
+        <div id="bulk-bar-bulk-form-customer" style="display: none; background: var(--card-bg); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+            <span style="color: var(--text-color); font-weight: 500;">Selected <strong id="bulk-count-bulk-form-customer" style="color: var(--primary);">0</strong> customer(s)</span>
+            <button type="submit" class="btn" style="background: var(--danger); font-size: 0.85rem; padding: 0.4rem 1rem;">
+                🗑️ Soft Delete Selected Customers
+            </button>
+        </div>
+        {% endif %}
+    </form>
 </div>
 
 {% endblock %}

@@ -18,108 +18,144 @@
     <div class="header" style="margin-bottom: 1rem;">
         <h2>Incoming Stock Items</h2>
     </div>
-    <div class="table-responsive">
-    <table>
-        <thead>
-            <tr>
-                <th>Type</th>
-                <th>Model/Name</th>
-                <th>Serial Number</th>
-                <th>Status</th>
-                <th>Purchase Date</th>
-                {% if request.user.role == 'ADMIN' %}
-                <th>Action</th>
-                {% endif %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in items %}
-            <tr>
-                <td>{{ item.get_item_type_display }}</td>
-                <td>
-                    {% if item.scooter_model %}
-                        {{ item.scooter_model.name }}
-                    {% else %}
-                        {{ item.name }}
+    <form id="bulk-form-stockitem" action="{% url 'bulk_soft_delete' 'stockitem' %}" method="post">
+        {% csrf_token %}
+        <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    {% if request.user.role == 'ADMIN' %}
+                    <th style="width: 40px;"><input type="checkbox" onchange="toggleSelectAll(this, 'bulk-form-stockitem')" title="Select All"></th>
                     {% endif %}
-                </td>
-                <td style="font-family: monospace;">{{ item.serial_number }}</td>
-                <td>
-                    {% if item.status == 'AVAILABLE' %}
-                        <span style="color: var(--success); font-weight: 600;">AVAILABLE</span>
-                    {% elif item.status == 'SOLD' %}
-                        <span style="color: var(--text-muted); font-weight: 600;">SOLD</span>
-                    {% else %}
-                        <span style="color: var(--danger); font-weight: 600;">{{ item.status }}</span>
+                    <th>Type</th>
+                    <th>Model/Name</th>
+                    <th>Serial Number</th>
+                    <th>Status</th>
+                    <th>Purchase Date</th>
+                    {% if request.user.role == 'ADMIN' %}
+                    <th>Action</th>
                     {% endif %}
-                </td>
-                <td>{{ item.purchase_date }}</td>
-                {% if request.user.role == 'ADMIN' %}
-                <td>
-                    <form action="{% url 'delete_stock_item' item.id %}" method="post" style="margin: 0;" onsubmit="return confirm('Move stock item {{ item.serial_number }} to Recycle Bin?');">
-                        {% csrf_token %}
-                        <button type="submit" class="btn" style="background: var(--danger); padding: 0.25rem 0.6rem; font-size: 0.75rem;">Delete</button>
-                    </form>
-                </td>
-                {% endif %}
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted)">
-                    No stock items available. Add stock items using the button above.
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    </div>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    {% if request.user.role == 'ADMIN' %}
+                    <td><input type="checkbox" name="selected_ids" value="{{ item.id }}" onchange="updateBulkBar('bulk-form-stockitem')"></td>
+                    {% endif %}
+                    <td>{{ item.get_item_type_display }}</td>
+                    <td>
+                        {% if item.scooter_model %}
+                            {{ item.scooter_model.name }}
+                        {% else %}
+                            {{ item.name }}
+                        {% endif %}
+                    </td>
+                    <td style="font-family: monospace;">{{ item.serial_number }}</td>
+                    <td>
+                        {% if item.status == 'AVAILABLE' %}
+                            <span style="color: var(--success); font-weight: 600;">AVAILABLE</span>
+                        {% elif item.status == 'SOLD' %}
+                            <span style="color: var(--text-muted); font-weight: 600;">SOLD</span>
+                        {% else %}
+                            <span style="color: var(--danger); font-weight: 600;">{{ item.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ item.purchase_date }}</td>
+                    {% if request.user.role == 'ADMIN' %}
+                    <td>
+                        <form action="{% url 'delete_stock_item' item.id %}" method="post" style="margin: 0;" onsubmit="return confirm('Move stock item {{ item.serial_number }} to Recycle Bin?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn" style="background: var(--danger); padding: 0.25rem 0.6rem; font-size: 0.75rem;">Delete</button>
+                        </form>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted)">
+                        No stock items available. Add stock items using the button above.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+
+        {% if request.user.role == 'ADMIN' %}
+        <div id="bulk-bar-bulk-form-stockitem" style="display: none; background: var(--card-bg); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+            <span style="color: var(--text-color); font-weight: 500;">Selected <strong id="bulk-count-bulk-form-stockitem" style="color: var(--primary);">0</strong> item(s)</span>
+            <button type="submit" class="btn" style="background: var(--danger); font-size: 0.85rem; padding: 0.4rem 1rem;">
+                🗑️ Soft Delete Selected Items
+            </button>
+        </div>
+        {% endif %}
+    </form>
 </div>
 
 <div class="card" style="margin-top: 2rem;">
     <div class="header" style="margin-bottom: 1rem;">
         <h2>Registered Scooter Models</h2>
     </div>
-    <div class="table-responsive">
-    <table>
-        <thead>
-            <tr>
-                <th>Model Name</th>
-                <th>Range (km)</th>
-                <th>Power (Watts)</th>
-                <th>Charging Time (hrs)</th>
-                <th>Last Price</th>
-                {% if request.user.role == 'ADMIN' %}
-                <th>Action</th>
-                {% endif %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for scooter in scooters %}
-            <tr>
-                <td style="font-weight: 600;">{{ scooter.name }}</td>
-                <td>{{ scooter.range_km }} km</td>
-                <td>{{ scooter.watts }} W</td>
-                <td>{{ scooter.charging_time }} h</td>
-                <td>₹{{ scooter.last_price }}</td>
-                {% if request.user.role == 'ADMIN' %}
-                <td>
-                    <form action="{% url 'delete_scooter_model' scooter.id %}" method="post" style="margin: 0;" onsubmit="return confirm('Move scooter model {{ scooter.name }} to Recycle Bin?');">
-                        {% csrf_token %}
-                        <button type="submit" class="btn" style="background: var(--danger); padding: 0.25rem 0.6rem; font-size: 0.75rem;">Delete</button>
-                    </form>
-                </td>
-                {% endif %}
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted)">
-                    No scooter models registered.
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    </div>
+    <form id="bulk-form-scootermodel" action="{% url 'bulk_soft_delete' 'scootermodel' %}" method="post">
+        {% csrf_token %}
+        <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    {% if request.user.role == 'ADMIN' %}
+                    <th style="width: 40px;"><input type="checkbox" onchange="toggleSelectAll(this, 'bulk-form-scootermodel')" title="Select All"></th>
+                    {% endif %}
+                    <th>Model Name</th>
+                    <th>Range (km)</th>
+                    <th>Power (Watts)</th>
+                    <th>Charging Time (hrs)</th>
+                    <th>Last Price</th>
+                    {% if request.user.role == 'ADMIN' %}
+                    <th>Action</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for scooter in scooters %}
+                <tr>
+                    {% if request.user.role == 'ADMIN' %}
+                    <td><input type="checkbox" name="selected_ids" value="{{ scooter.id }}" onchange="updateBulkBar('bulk-form-scootermodel')"></td>
+                    {% endif %}
+                    <td style="font-weight: 600;">{{ scooter.name }}</td>
+                    <td>{{ scooter.range_km }} km</td>
+                    <td>{{ scooter.watts }} W</td>
+                    <td>{{ scooter.charging_time }} h</td>
+                    <td>₹{{ scooter.last_price }}</td>
+                    {% if request.user.role == 'ADMIN' %}
+                    <td>
+                        <form action="{% url 'delete_scooter_model' scooter.id %}" method="post" style="margin: 0;" onsubmit="return confirm('Move scooter model {{ scooter.name }} to Recycle Bin?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn" style="background: var(--danger); padding: 0.25rem 0.6rem; font-size: 0.75rem;">Delete</button>
+                        </form>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted)">
+                        No scooter models registered.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+
+        {% if request.user.role == 'ADMIN' %}
+        <div id="bulk-bar-bulk-form-scootermodel" style="display: none; background: var(--card-bg); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+            <span style="color: var(--text-color); font-weight: 500;">Selected <strong id="bulk-count-bulk-form-scootermodel" style="color: var(--primary);">0</strong> model(s)</span>
+            <button type="submit" class="btn" style="background: var(--danger); font-size: 0.85rem; padding: 0.4rem 1rem;">
+                🗑️ Soft Delete Selected Models
+            </button>
+        </div>
+        {% endif %}
+    </form>
 </div>
 
 {% endblock %}

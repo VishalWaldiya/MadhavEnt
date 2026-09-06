@@ -217,3 +217,202 @@ class PWATests(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, 'currently offline')
 
+
+class NotificationSystemTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='admin_notif',
+            password='password123',
+            role='ADMIN',
+            is_staff=True,
+            is_superuser=True
+        )
+        self.sales = User.objects.create_user(
+            username='sales_notif',
+            password='password123',
+            role='SALES'
+        )
+        self.client = Client()
+
+    def test_subscribe_push_device(self):
+        self.client.login(username='sales_notif', password='password123')
+        url = reverse('subscribe_push_device')
+        payload = {
+            'endpoint': 'https://push.example.com/device-123',
+            'p256dh': 'p256dh_key_sample',
+            'auth': 'auth_key_sample',
+            'browser_info': 'Mozilla/5.0 Test Browser'
+        }
+        res = self.client.post(url, data=payload, content_type='application/json')
+        self.assertEqual(res.status_code, 200)
+
+        from core.models import PushDeviceSubscription
+        sub = PushDeviceSubscription.objects.filter(user=self.sales).first()
+        self.assertIsNotNone(sub)
+        self.assertEqual(sub.endpoint, 'https://push.example.com/device-123')
+
+    def test_update_notification_preferences(self):
+        self.client.login(username='sales_notif', password='password123')
+        url = reverse('update_notification_preferences')
+        res = self.client.post(url, {
+            'notify_on_sale': 'on',
+            'notify_on_task_comment': 'off',
+            'notify_on_broadcast': 'on'
+        })
+        self.assertEqual(res.status_code, 302)
+
+        from core.models import NotificationPreference
+        pref = NotificationPreference.objects.get(user=self.sales)
+        self.assertTrue(pref.notify_on_sale)
+        self.assertFalse(pref.notify_on_task_comment)
+        self.assertTrue(pref.notify_on_broadcast)
+
+    def test_admin_broadcast_notification(self):
+        self.client.login(username='admin_notif', password='password123')
+        url = reverse('broadcast_notification')
+
+        # GET broadcast screen
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+
+        # POST broadcast message
+        res = self.client.post(url, {
+            'title': 'Emergency Shop Meeting',
+            'message': 'All staff please assemble at 4 PM.',
+            'target_url': '/dashboard/'
+        })
+        self.assertEqual(res.status_code, 302)
+
+        from core.models import BroadcastNotificationLog
+        log = BroadcastNotificationLog.objects.filter(title='Emergency Shop Meeting').first()
+        self.assertIsNotNone(log)
+        self.assertEqual(log.category, 'BROADCAST')
+        self.assertEqual(log.sender, self.admin)
+
+    def test_vapid_public_key_view(self):
+        self.client.login(username='admin_notif', password='password123')
+        url = reverse('vapid_public_key')
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertIn('public_key', data)
+        self.assertTrue(len(data['public_key']) > 20)
+
+    def test_broadcast_includes_sender_devices(self):
+        from core.models import PushDeviceSubscription
+        from core.views import dispatch_push_notification
+
+        # Register device for admin and sales
+        PushDeviceSubscription.objects.create(
+            user=self.admin,
+            endpoint='https://push.example.com/admin-dev-1'
+        )
+        PushDeviceSubscription.objects.create(
+            user=self.sales,
+            endpoint='https://push.example.com/sales-dev-1'
+        )
+
+        # Broadcast should include sender (admin)
+        res_broadcast = dispatch_push_notification(
+            category='BROADCAST',
+            title='Shop Meeting',
+            message='All hands on deck',
+            sender=self.admin
+        )
+        self.assertEqual(res_broadcast['subscriptions_count'], 2)
+
+        # Action notifications (like SALE) should exclude sender
+        res_sale = dispatch_push_notification(
+            category='SALE',
+            title='New Sale',
+            message='Sale completed',
+            sender=self.admin
+        )
+        self.assertEqual(res_sale['subscriptions_count'], 1)
+
+
+class BulkOperationsTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='admin_bulk',
+            password='password123',
+            role='ADMIN',
+            is_staff=True,
+            is_superuser=True
+        )
+        self.sales = User.objects.create_user(
+            username='sales_bulk',
+            password='password123',
+            role='SALES'
+        )
+        self.client = Client()
+
+    def test_bulk_soft_delete_without_connected_resources(self):
+        self.client.login(username='admin_bulk', password='password123')
+        n1 = Note.objects.create(title='Note 1', content='C1')
+        n2 = Note.objects.create(title='Note 2', content='C2')
+
+        url = reverse('bulk_soft_delete', args=['note'])
+        res = self.client.post(url, {'selected_ids': [n1.id, n2.id]})
+        self.assertEqual(res.status_code, 302)
+
+        n1.refresh_from_db()
+        n2.refresh_from_db()
+        self.assertTrue(n1.is_deleted)
+        self.assertTrue(n2.is_deleted)
+
+    def test_bulk_soft_delete_with_cascade_confirmation(self):
+        self.client.login(username='admin_bulk', password='password123')
+        model1 = ScooterModel.objects.create(name='Model Alpha', range_km=80, watts=1000, charging_time=4, last_price=50000)
+        item1 = StockItem.objects.create(item_type='SCOOTER', scooter_model=model1, name='Alpha Unit', serial_number='SN-ALPHA-01')
+
+        url = reverse('bulk_soft_delete', args=['scootermodel'])
+        # Step 1: Initial POST without confirmation flag -> renders delete_confirm.html preview
+        res = self.client.post(url, {'selected_ids': [model1.id]})
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'Confirm Soft Delete')
+        self.assertContains(res, 'Stock Item')
+
+        model1.refresh_from_db()
+        item1.refresh_from_db()
+        self.assertFalse(model1.is_deleted)
+        self.assertFalse(item1.is_deleted)
+
+        # Step 2: Confirmed POST -> soft deletes model & connected stock item
+        res = self.client.post(url, {'selected_ids': [model1.id], 'confirmed': '1'})
+        self.assertEqual(res.status_code, 302)
+
+        model1.refresh_from_db()
+        item1.refresh_from_db()
+        self.assertTrue(model1.is_deleted)
+        self.assertTrue(item1.is_deleted)
+
+    def test_bulk_restore_from_recycle_bin(self):
+        self.client.login(username='admin_bulk', password='password123')
+        n1 = Note.objects.create(title='Del 1', content='C1')
+        n2 = Note.objects.create(title='Del 2', content='C2')
+        n1.delete()
+        n2.delete()
+
+        url = reverse('bulk_restore', args=['note'])
+        res = self.client.post(url, {'selected_ids': [n1.id, n2.id]})
+        self.assertEqual(res.status_code, 302)
+
+        n1.refresh_from_db()
+        n2.refresh_from_db()
+        self.assertFalse(n1.is_deleted)
+        self.assertFalse(n2.is_deleted)
+
+    def test_bulk_hard_delete(self):
+        self.client.login(username='admin_bulk', password='password123')
+        n1 = Note.objects.create(title='Hard 1', content='C1')
+        n1.delete()
+
+        url = reverse('bulk_hard_delete', args=['note'])
+        res = self.client.post(url, {'selected_ids': [n1.id]})
+        self.assertEqual(res.status_code, 302)
+
+        self.assertFalse(Note.all_objects.filter(id=n1.id).exists())
+
+
+

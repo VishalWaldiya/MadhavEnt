@@ -28,329 +28,428 @@
     {% if deleted_staff %}
     <div class="card" style="margin-bottom: 2rem;">
         <h2 style="color: var(--danger); margin-bottom: 1rem;">{% trans "Deleted Staff Users" %}</h2>
-        <div class="table-responsive">
-        <table>
+        <form id="bulk-bin-user-staff" method="post">
+            {% csrf_token %}
+            <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" onchange="toggleSelectAll(this, 'bulk-bin-user-staff')" title="Select All"></th>
+                        <th>{% trans "Username" %}</th>
+                        <th>{% trans "Role" %}</th>
+                        <th>{% trans "Deleted At" %}</th>
+                        <th>{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in deleted_staff %}
+                    <tr>
+                        <td><input type="checkbox" name="selected_ids" value="{{ u.id }}" onchange="updateBulkBar('bulk-bin-user-staff')"></td>
+                        <td style="font-weight: 600;">{{ u.username }}</td>
+                        <td>{{ u.get_role_display }}</td>
+                        <td>{{ u.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
+                        <td style="display: flex; gap: 0.5rem;">
+                            <a href="{% url 'restore_item' 'user' u.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
+                            <form action="{% url 'hard_delete_item' 'user' u.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete user {{ u.username }}? This cannot be undone!');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
 
-            <thead>
-                <tr>
-                    <th>{% trans "Username" %}</th>
-                    <th>{% trans "Role" %}</th>
-                    <th>{% trans "Deleted At" %}</th>
-                    <th>{% trans "Actions" %}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for u in deleted_staff %}
-                <tr>
-                    <td style="font-weight: 600;">{{ u.username }}</td>
-                    <td>{{ u.get_role_display }}</td>
-                    <td>{{ u.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
-                    <td style="display: flex; gap: 0.5rem;">
-                        <a href="{% url 'restore_item' 'user' u.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
-                        <form action="{% url 'hard_delete_item' 'user' u.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete user {{ u.username }}? This cannot be undone!');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        </div>
+            <div id="bulk-bar-bulk-bin-user-staff" style="display: none; background: var(--card-bg); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                <span style="color: var(--text-color); font-weight: 500;">Selected <strong id="bulk-count-bulk-bin-user-staff" style="color: var(--primary);">0</strong> user(s)</span>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="submit" formaction="{% url 'bulk_restore' 'user' %}" class="btn" style="background: var(--success); font-size: 0.85rem; padding: 0.4rem 1rem;">🔄 {% trans "Restore Selected" %}</button>
+                    <button type="submit" formaction="{% url 'bulk_hard_delete' 'user' %}" class="btn" style="background: var(--danger); font-size: 0.85rem; padding: 0.4rem 1rem;" onclick="return confirm('Permanently delete selected user(s)? This action CANNOT be undone!');">🗑️ {% trans "Delete Permanently" %}</button>
+                </div>
+            </div>
+        </form>
     </div>
-
     {% endif %}
 
     {% if deleted_customers %}
     <div class="card" style="margin-bottom: 2rem;">
         <h2 style="color: var(--danger); margin-bottom: 1rem;">{% trans "Deleted Customer Profiles" %}</h2>
-        <div class="table-responsive">
-        <table>
+        <form id="bulk-bin-user-cust" method="post">
+            {% csrf_token %}
+            <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" onchange="toggleSelectAll(this, 'bulk-bin-user-cust')" title="Select All"></th>
+                        <th>{% trans "Name" %}</th>
+                        <th>{% trans "Phone Number" %}</th>
+                        <th>{% trans "Deleted At" %}</th>
+                        <th>{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in deleted_customers %}
+                    <tr>
+                        <td><input type="checkbox" name="selected_ids" value="{{ c.id }}" onchange="updateBulkBar('bulk-bin-user-cust')"></td>
+                        <td style="font-weight: 600;">{{ c.get_full_name|default:c.username }}</td>
+                        <td>{{ c.phone_number|default:"-" }}</td>
+                        <td>{{ c.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
+                        <td style="display: flex; gap: 0.5rem;">
+                            <a href="{% url 'restore_item' 'user' c.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
+                            <form action="{% url 'hard_delete_item' 'user' c.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete customer {{ c.get_full_name }}?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
 
-            <thead>
-                <tr>
-                    <th>{% trans "Name" %}</th>
-                    <th>{% trans "Phone Number" %}</th>
-                    <th>{% trans "Deleted At" %}</th>
-                    <th>{% trans "Actions" %}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for c in deleted_customers %}
-                <tr>
-                    <td style="font-weight: 600;">{{ c.get_full_name|default:c.username }}</td>
-                    <td>{{ c.phone_number|default:"-" }}</td>
-                    <td>{{ c.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
-                    <td style="display: flex; gap: 0.5rem;">
-                        <a href="{% url 'restore_item' 'user' c.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
-                        <form action="{% url 'hard_delete_item' 'user' c.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete customer {{ c.get_full_name }}?');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        </div>
+            <div id="bulk-bar-bulk-bin-user-cust" style="display: none; background: var(--card-bg); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                <span style="color: var(--text-color); font-weight: 500;">Selected <strong id="bulk-count-bulk-bin-user-cust" style="color: var(--primary);">0</strong> customer(s)</span>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="submit" formaction="{% url 'bulk_restore' 'user' %}" class="btn" style="background: var(--success); font-size: 0.85rem; padding: 0.4rem 1rem;">🔄 {% trans "Restore Selected" %}</button>
+                    <button type="submit" formaction="{% url 'bulk_hard_delete' 'user' %}" class="btn" style="background: var(--danger); font-size: 0.85rem; padding: 0.4rem 1rem;" onclick="return confirm('Permanently delete selected customer(s)? This action CANNOT be undone!');">🗑️ {% trans "Delete Permanently" %}</button>
+                </div>
+            </div>
+        </form>
     </div>
-
     {% endif %}
 
     {% if deleted_stock_items %}
     <div class="card" style="margin-bottom: 2rem;">
         <h2 style="color: var(--danger); margin-bottom: 1rem;">{% trans "Deleted Inventory Items" %}</h2>
-        <div class="table-responsive">
-        <table>
+        <form id="bulk-bin-stockitem" method="post">
+            {% csrf_token %}
+            <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" onchange="toggleSelectAll(this, 'bulk-bin-stockitem')" title="Select All"></th>
+                        <th>{% trans "Type" %}</th>
+                        <th>{% trans "Serial Number" %}</th>
+                        <th>{% trans "Name" %}</th>
+                        <th>{% trans "Deleted At" %}</th>
+                        <th>{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in deleted_stock_items %}
+                    <tr>
+                        <td><input type="checkbox" name="selected_ids" value="{{ item.id }}" onchange="updateBulkBar('bulk-bin-stockitem')"></td>
+                        <td>{{ item.get_item_type_display }}</td>
+                        <td style="font-family: monospace;">{{ item.serial_number }}</td>
+                        <td>{{ item.name }}</td>
+                        <td>{{ item.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
+                        <td style="display: flex; gap: 0.5rem;">
+                            <a href="{% url 'restore_item' 'stockitem' item.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
+                            <form action="{% url 'hard_delete_item' 'stockitem' item.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete stock item {{ item.serial_number }}?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
 
-            <thead>
-                <tr>
-                    <th>{% trans "Type" %}</th>
-                    <th>{% trans "Serial Number" %}</th>
-                    <th>{% trans "Name" %}</th>
-                    <th>{% trans "Deleted At" %}</th>
-                    <th>{% trans "Actions" %}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in deleted_stock_items %}
-                <tr>
-                    <td>{{ item.get_item_type_display }}</td>
-                    <td style="font-family: monospace;">{{ item.serial_number }}</td>
-                    <td>{{ item.name }}</td>
-                    <td>{{ item.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
-                    <td style="display: flex; gap: 0.5rem;">
-                        <a href="{% url 'restore_item' 'stockitem' item.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
-                        <form action="{% url 'hard_delete_item' 'stockitem' item.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete stock item {{ item.serial_number }}?');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        </div>
+            <div id="bulk-bar-bulk-bin-stockitem" style="display: none; background: var(--card-bg); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                <span style="color: var(--text-color); font-weight: 500;">Selected <strong id="bulk-count-bulk-bin-stockitem" style="color: var(--primary);">0</strong> item(s)</span>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="submit" formaction="{% url 'bulk_restore' 'stockitem' %}" class="btn" style="background: var(--success); font-size: 0.85rem; padding: 0.4rem 1rem;">🔄 {% trans "Restore Selected" %}</button>
+                    <button type="submit" formaction="{% url 'bulk_hard_delete' 'stockitem' %}" class="btn" style="background: var(--danger); font-size: 0.85rem; padding: 0.4rem 1rem;" onclick="return confirm('Permanently delete selected stock item(s)? This action CANNOT be undone!');">🗑️ {% trans "Delete Permanently" %}</button>
+                </div>
+            </div>
+        </form>
     </div>
-
     {% endif %}
 
     {% if deleted_scooter_models %}
     <div class="card" style="margin-bottom: 2rem;">
         <h2 style="color: var(--danger); margin-bottom: 1rem;">{% trans "Deleted Scooter Models" %}</h2>
-        <div class="table-responsive">
-        <table>
+        <form id="bulk-bin-scootermodel" method="post">
+            {% csrf_token %}
+            <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" onchange="toggleSelectAll(this, 'bulk-bin-scootermodel')" title="Select All"></th>
+                        <th>{% trans "Model Name" %}</th>
+                        <th>{% trans "Price" %}</th>
+                        <th>{% trans "Deleted At" %}</th>
+                        <th>{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in deleted_scooter_models %}
+                    <tr>
+                        <td><input type="checkbox" name="selected_ids" value="{{ m.id }}" onchange="updateBulkBar('bulk-bin-scootermodel')"></td>
+                        <td style="font-weight: 600;">{{ m.name }}</td>
+                        <td>₹{{ m.last_price }}</td>
+                        <td>{{ m.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
+                        <td style="display: flex; gap: 0.5rem;">
+                            <a href="{% url 'restore_item' 'scootermodel' m.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
+                            <form action="{% url 'hard_delete_item' 'scootermodel' m.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete scooter model {{ m.name }}?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
 
-            <thead>
-                <tr>
-                    <th>{% trans "Model Name" %}</th>
-                    <th>{% trans "Price" %}</th>
-                    <th>{% trans "Deleted At" %}</th>
-                    <th>{% trans "Actions" %}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for m in deleted_scooter_models %}
-                <tr>
-                    <td style="font-weight: 600;">{{ m.name }}</td>
-                    <td>₹{{ m.last_price }}</td>
-                    <td>{{ m.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
-                    <td style="display: flex; gap: 0.5rem;">
-                        <a href="{% url 'restore_item' 'scootermodel' m.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
-                        <form action="{% url 'hard_delete_item' 'scootermodel' m.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete scooter model {{ m.name }}?');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        </div>
+            <div id="bulk-bar-bulk-bin-scootermodel" style="display: none; background: var(--card-bg); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                <span style="color: var(--text-color); font-weight: 500;">Selected <strong id="bulk-count-bulk-bin-scootermodel" style="color: var(--primary);">0</strong> model(s)</span>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="submit" formaction="{% url 'bulk_restore' 'scootermodel' %}" class="btn" style="background: var(--success); font-size: 0.85rem; padding: 0.4rem 1rem;">🔄 {% trans "Restore Selected" %}</button>
+                    <button type="submit" formaction="{% url 'bulk_hard_delete' 'scootermodel' %}" class="btn" style="background: var(--danger); font-size: 0.85rem; padding: 0.4rem 1rem;" onclick="return confirm('Permanently delete selected scooter model(s)? This action CANNOT be undone!');">🗑️ {% trans "Delete Permanently" %}</button>
+                </div>
+            </div>
+        </form>
     </div>
-
     {% endif %}
 
     {% if deleted_sales %}
     <div class="card" style="margin-bottom: 2rem;">
         <h2 style="color: var(--danger); margin-bottom: 1rem;">{% trans "Deleted Sales Records" %}</h2>
-        <div class="table-responsive">
-        <table>
+        <form id="bulk-bin-salerecord" method="post">
+            {% csrf_token %}
+            <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" onchange="toggleSelectAll(this, 'bulk-bin-salerecord')" title="Select All"></th>
+                        <th>{% trans "Invoice" %}</th>
+                        <th>{% trans "Customer" %}</th>
+                        <th>{% trans "Total Amount" %}</th>
+                        <th>{% trans "Deleted At" %}</th>
+                        <th>{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in deleted_sales %}
+                    <tr>
+                        <td><input type="checkbox" name="selected_ids" value="{{ s.id }}" onchange="updateBulkBar('bulk-bin-salerecord')"></td>
+                        <td>INV-{{ s.id }}</td>
+                        <td style="font-weight: 600;">{{ s.customer.get_full_name|default:"Unknown" }}</td>
+                        <td>₹{{ s.total_amount }}</td>
+                        <td>{{ s.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
+                        <td style="display: flex; gap: 0.5rem;">
+                            <a href="{% url 'restore_item' 'salerecord' s.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
+                            <form action="{% url 'hard_delete_item' 'salerecord' s.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete Sale INV-{{ s.id }}?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
 
-            <thead>
-                <tr>
-                    <th>{% trans "Invoice" %}</th>
-                    <th>{% trans "Customer" %}</th>
-                    <th>{% trans "Total Amount" %}</th>
-                    <th>{% trans "Deleted At" %}</th>
-                    <th>{% trans "Actions" %}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for s in deleted_sales %}
-                <tr>
-                    <td>INV-{{ s.id }}</td>
-                    <td style="font-weight: 600;">{{ s.customer.get_full_name|default:"Unknown" }}</td>
-                    <td>₹{{ s.total_amount }}</td>
-                    <td>{{ s.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
-                    <td style="display: flex; gap: 0.5rem;">
-                        <a href="{% url 'restore_item' 'salerecord' s.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
-                        <form action="{% url 'hard_delete_item' 'salerecord' s.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete Sale INV-{{ s.id }}?');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        </div>
+            <div id="bulk-bar-bulk-bin-salerecord" style="display: none; background: var(--card-bg); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                <span style="color: var(--text-color); font-weight: 500;">Selected <strong id="bulk-count-bulk-bin-salerecord" style="color: var(--primary);">0</strong> sale(s)</span>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="submit" formaction="{% url 'bulk_restore' 'salerecord' %}" class="btn" style="background: var(--success); font-size: 0.85rem; padding: 0.4rem 1rem;">🔄 {% trans "Restore Selected" %}</button>
+                    <button type="submit" formaction="{% url 'bulk_hard_delete' 'salerecord' %}" class="btn" style="background: var(--danger); font-size: 0.85rem; padding: 0.4rem 1rem;" onclick="return confirm('Permanently delete selected sale record(s)? This action CANNOT be undone!');">🗑️ {% trans "Delete Permanently" %}</button>
+                </div>
+            </div>
+        </form>
     </div>
-
     {% endif %}
 
     {% if deleted_leads %}
     <div class="card" style="margin-bottom: 2rem;">
         <h2 style="color: var(--danger); margin-bottom: 1rem;">{% trans "Deleted Leads" %}</h2>
-        <div class="table-responsive">
-        <table>
+        <form id="bulk-bin-lead" method="post">
+            {% csrf_token %}
+            <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" onchange="toggleSelectAll(this, 'bulk-bin-lead')" title="Select All"></th>
+                        <th>{% trans "Customer Name" %}</th>
+                        <th>{% trans "Interested Items" %}</th>
+                        <th>{% trans "Deleted At" %}</th>
+                        <th>{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for l in deleted_leads %}
+                    <tr>
+                        <td><input type="checkbox" name="selected_ids" value="{{ l.id }}" onchange="updateBulkBar('bulk-bin-lead')"></td>
+                        <td style="font-weight: 600;">{{ l.customer.get_full_name|default:"Unknown" }}</td>
+                        <td>{{ l.interested_items }}</td>
+                        <td>{{ l.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
+                        <td style="display: flex; gap: 0.5rem;">
+                            <a href="{% url 'restore_item' 'lead' l.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
+                            <form action="{% url 'hard_delete_item' 'lead' l.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete lead?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
 
-            <thead>
-                <tr>
-                    <th>{% trans "Customer Name" %}</th>
-                    <th>{% trans "Interested Items" %}</th>
-                    <th>{% trans "Deleted At" %}</th>
-                    <th>{% trans "Actions" %}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for l in deleted_leads %}
-                <tr>
-                    <td style="font-weight: 600;">{{ l.customer.get_full_name|default:"Unknown" }}</td>
-                    <td>{{ l.interested_items }}</td>
-                    <td>{{ l.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
-                    <td style="display: flex; gap: 0.5rem;">
-                        <a href="{% url 'restore_item' 'lead' l.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
-                        <form action="{% url 'hard_delete_item' 'lead' l.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete lead?');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        </div>
+            <div id="bulk-bar-bulk-bin-lead" style="display: none; background: var(--card-bg); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                <span style="color: var(--text-color); font-weight: 500;">Selected <strong id="bulk-count-bulk-bin-lead" style="color: var(--primary);">0</strong> lead(s)</span>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="submit" formaction="{% url 'bulk_restore' 'lead' %}" class="btn" style="background: var(--success); font-size: 0.85rem; padding: 0.4rem 1rem;">🔄 {% trans "Restore Selected" %}</button>
+                    <button type="submit" formaction="{% url 'bulk_hard_delete' 'lead' %}" class="btn" style="background: var(--danger); font-size: 0.85rem; padding: 0.4rem 1rem;" onclick="return confirm('Permanently delete selected lead(s)? This action CANNOT be undone!');">🗑️ {% trans "Delete Permanently" %}</button>
+                </div>
+            </div>
+        </form>
     </div>
-
     {% endif %}
 
     {% if deleted_tasks %}
     <div class="card" style="margin-bottom: 2rem;">
         <h2 style="color: var(--danger); margin-bottom: 1rem;">{% trans "Deleted Tasks" %}</h2>
-        <div class="table-responsive">
-        <table>
+        <form id="bulk-bin-shoptask" method="post">
+            {% csrf_token %}
+            <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" onchange="toggleSelectAll(this, 'bulk-bin-shoptask')" title="Select All"></th>
+                        <th>{% trans "Task Number" %}</th>
+                        <th>{% trans "Title" %}</th>
+                        <th>{% trans "Deleted At" %}</th>
+                        <th>{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in deleted_tasks %}
+                    <tr>
+                        <td><input type="checkbox" name="selected_ids" value="{{ t.id }}" onchange="updateBulkBar('bulk-bin-shoptask')"></td>
+                        <td style="font-weight: 700;">{{ t.task_number }}</td>
+                        <td>{{ t.title }}</td>
+                        <td>{{ t.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
+                        <td style="display: flex; gap: 0.5rem;">
+                            <a href="{% url 'restore_item' 'shoptask' t.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
+                            <form action="{% url 'hard_delete_item' 'shoptask' t.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete task {{ t.task_number }}?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
 
-            <thead>
-                <tr>
-                    <th>{% trans "Task Number" %}</th>
-                    <th>{% trans "Title" %}</th>
-                    <th>{% trans "Deleted At" %}</th>
-                    <th>{% trans "Actions" %}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for t in deleted_tasks %}
-                <tr>
-                    <td style="font-weight: 700;">{{ t.task_number }}</td>
-                    <td>{{ t.title }}</td>
-                    <td>{{ t.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
-                    <td style="display: flex; gap: 0.5rem;">
-                        <a href="{% url 'restore_item' 'shoptask' t.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
-                        <form action="{% url 'hard_delete_item' 'shoptask' t.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete task {{ t.task_number }}?');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        </div>
+            <div id="bulk-bar-bulk-bin-shoptask" style="display: none; background: var(--card-bg); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                <span style="color: var(--text-color); font-weight: 500;">Selected <strong id="bulk-count-bulk-bin-shoptask" style="color: var(--primary);">0</strong> task(s)</span>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="submit" formaction="{% url 'bulk_restore' 'shoptask' %}" class="btn" style="background: var(--success); font-size: 0.85rem; padding: 0.4rem 1rem;">🔄 {% trans "Restore Selected" %}</button>
+                    <button type="submit" formaction="{% url 'bulk_hard_delete' 'shoptask' %}" class="btn" style="background: var(--danger); font-size: 0.85rem; padding: 0.4rem 1rem;" onclick="return confirm('Permanently delete selected task(s)? This action CANNOT be undone!');">🗑️ {% trans "Delete Permanently" %}</button>
+                </div>
+            </div>
+        </form>
     </div>
-
     {% endif %}
 
     {% if deleted_notes %}
     <div class="card" style="margin-bottom: 2rem;">
         <h2 style="color: var(--danger); margin-bottom: 1rem;">{% trans "Deleted Shop Notes" %}</h2>
-        <div class="table-responsive">
-        <table>
+        <form id="bulk-bin-note" method="post">
+            {% csrf_token %}
+            <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" onchange="toggleSelectAll(this, 'bulk-bin-note')" title="Select All"></th>
+                        <th>{% trans "Title" %}</th>
+                        <th>{% trans "Content Preview" %}</th>
+                        <th>{% trans "Deleted At" %}</th>
+                        <th>{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for n in deleted_notes %}
+                    <tr>
+                        <td><input type="checkbox" name="selected_ids" value="{{ n.id }}" onchange="updateBulkBar('bulk-bin-note')"></td>
+                        <td style="font-weight: 600;">{{ n.title }}</td>
+                        <td style="color: var(--text-muted);">{{ n.content|truncatechars:80 }}</td>
+                        <td>{{ n.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
+                        <td style="display: flex; gap: 0.5rem;">
+                            <a href="{% url 'restore_item' 'note' n.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
+                            <form action="{% url 'hard_delete_item' 'note' n.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete note {{ n.title }}?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
 
-            <thead>
-                <tr>
-                    <th>{% trans "Title" %}</th>
-                    <th>{% trans "Content Preview" %}</th>
-                    <th>{% trans "Deleted At" %}</th>
-                    <th>{% trans "Actions" %}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for n in deleted_notes %}
-                <tr>
-                    <td style="font-weight: 600;">{{ n.title }}</td>
-                    <td style="color: var(--text-muted);">{{ n.content|truncatechars:80 }}</td>
-                    <td>{{ n.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
-                    <td style="display: flex; gap: 0.5rem;">
-                        <a href="{% url 'restore_item' 'note' n.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
-                        <form action="{% url 'hard_delete_item' 'note' n.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete note {{ n.title }}?');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        </div>
+            <div id="bulk-bar-bulk-bin-note" style="display: none; background: var(--card-bg); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                <span style="color: var(--text-color); font-weight: 500;">Selected <strong id="bulk-count-bulk-bin-note" style="color: var(--primary);">0</strong> note(s)</span>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="submit" formaction="{% url 'bulk_restore' 'note' %}" class="btn" style="background: var(--success); font-size: 0.85rem; padding: 0.4rem 1rem;">🔄 {% trans "Restore Selected" %}</button>
+                    <button type="submit" formaction="{% url 'bulk_hard_delete' 'note' %}" class="btn" style="background: var(--danger); font-size: 0.85rem; padding: 0.4rem 1rem;" onclick="return confirm('Permanently delete selected note(s)? This action CANNOT be undone!');">🗑️ {% trans "Delete Permanently" %}</button>
+                </div>
+            </div>
+        </form>
     </div>
-
     {% endif %}
 
     {% if deleted_templates %}
     <div class="card" style="margin-bottom: 2rem;">
         <h2 style="color: var(--danger); margin-bottom: 1rem;">{% trans "Deleted Workflow Templates" %}</h2>
-        <div class="table-responsive">
-        <table>
+        <form id="bulk-bin-tasktemplate" method="post">
+            {% csrf_token %}
+            <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" onchange="toggleSelectAll(this, 'bulk-bin-tasktemplate')" title="Select All"></th>
+                        <th>{% trans "Template Name" %}</th>
+                        <th>{% trans "Prefix" %}</th>
+                        <th>{% trans "Deleted At" %}</th>
+                        <th>{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tmpl in deleted_templates %}
+                    <tr>
+                        <td><input type="checkbox" name="selected_ids" value="{{ tmpl.id }}" onchange="updateBulkBar('bulk-bin-tasktemplate')"></td>
+                        <td style="font-weight: 600;">{{ tmpl.name }}</td>
+                        <td>{{ tmpl.prefix }}</td>
+                        <td>{{ tmpl.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
+                        <td style="display: flex; gap: 0.5rem;">
+                            <a href="{% url 'restore_item' 'tasktemplate' tmpl.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
+                            <form action="{% url 'hard_delete_item' 'tasktemplate' tmpl.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete workflow template {{ tmpl.name }}?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
 
-            <thead>
-                <tr>
-                    <th>{% trans "Template Name" %}</th>
-                    <th>{% trans "Prefix" %}</th>
-                    <th>{% trans "Deleted At" %}</th>
-                    <th>{% trans "Actions" %}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for tmpl in deleted_templates %}
-                <tr>
-                    <td style="font-weight: 600;">{{ tmpl.name }}</td>
-                    <td>{{ tmpl.prefix }}</td>
-                    <td>{{ tmpl.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
-                    <td style="display: flex; gap: 0.5rem;">
-                        <a href="{% url 'restore_item' 'tasktemplate' tmpl.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
-                        <form action="{% url 'hard_delete_item' 'tasktemplate' tmpl.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete workflow template {{ tmpl.name }}?');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        </div>
+            <div id="bulk-bar-bulk-bin-tasktemplate" style="display: none; background: var(--card-bg); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                <span style="color: var(--text-color); font-weight: 500;">Selected <strong id="bulk-count-bulk-bin-tasktemplate" style="color: var(--primary);">0</strong> template(s)</span>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="submit" formaction="{% url 'bulk_restore' 'tasktemplate' %}" class="btn" style="background: var(--success); font-size: 0.85rem; padding: 0.4rem 1rem;">🔄 {% trans "Restore Selected" %}</button>
+                    <button type="submit" formaction="{% url 'bulk_hard_delete' 'tasktemplate' %}" class="btn" style="background: var(--danger); font-size: 0.85rem; padding: 0.4rem 1rem;" onclick="return confirm('Permanently delete selected template(s)? This action CANNOT be undone!');">🗑️ {% trans "Delete Permanently" %}</button>
+                </div>
+            </div>
+        </form>
     </div>
-
     {% endif %}
 
 {% endif %}

@@ -3,58 +3,228 @@
 {% block title %}Capture Lead - EV Stock Manager{% endblock %}
 
 {% block content %}
-<div class="card" style="max-width: 600px; margin: 0 auto;">
+<div class="card" style="max-width: 800px; margin: 0 auto;">
     <div class="header">
         <h1>Capture New Lead</h1>
     </div>
     <form method="post" action="{% url 'add_lead' %}" enctype="multipart/form-data">
         {% csrf_token %}
+        <h3 style="margin-bottom: 1rem; color: var(--primary);">1. Customer Information</h3>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
             <div>
-                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">First Name</label>
-                <input type="text" name="first_name" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">First Name *</label>
+                <input type="text" name="first_name" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
             </div>
             <div>
-                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Last Name</label>
-                <input type="text" name="last_name" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Last Name *</label>
+                <input type="text" name="last_name" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
             </div>
         </div>
-        <div style="margin-bottom: 1rem;">
-            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Contact Number</label>
-            <input type="text" name="phone_number" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
-        </div>
         <div style="margin-bottom: 1.5rem;">
-            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Interested Items / Remarks</label>
-            <textarea name="interested_items" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; resize: vertical; min-height: 80px;"></textarea>
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Contact Number *</label>
+            <input type="text" name="phone_number" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
         </div>
-        
-        <h3 style="margin-bottom: 1rem; color: var(--text-muted); font-size: 1.1rem;">Identity Information (Optional)</h3>
+
+        <h3 style="margin-bottom: 1rem; color: var(--primary);">2. Lead Requirements & Inventory Interest</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+            Select items from DB inventory (auto-fills price), or type custom items with optional price & option to save to DB.
+        </p>
+
+        <div id="requirements-container" style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1rem;">
+            <!-- Requirement rows will be added dynamically here -->
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-color); padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 1.5rem;">
+            <button type="button" class="btn" onclick="addRequirementRow()" style="background: transparent; border: 1px solid var(--primary); color: var(--primary); font-size: 0.9rem;">
+                ➕ Add Requirement Item
+            </button>
+            <div style="font-size: 1.05rem; font-weight: 600;">
+                Estimated Grand Total: <span id="grand-total" style="color: var(--success);">₹0.00</span>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Additional Remarks / Notes</label>
+            <textarea name="interested_items" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); resize: vertical; min-height: 70px;" placeholder="Customer budget, expected delivery timeline, preferences..."></textarea>
+        </div>
+
+        <h3 style="margin-bottom: 1rem; color: var(--text-muted); font-size: 1.1rem;">3. Identity Information (Optional)</h3>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
             <div>
                 <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Aadhar Number</label>
-                <input type="text" name="aadhar_number" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                <input type="text" name="aadhar_number" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
             </div>
             <div>
                 <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">PAN Number</label>
-                <input type="text" name="pan_number" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                <input type="text" name="pan_number" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
             </div>
             <div>
                 <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Aadhar Front Photo</label>
-                <input type="file" name="aadhar_front_photo" accept="image/*" style="width: 100%; padding: 0.5rem; color: white;">
+                <input type="file" name="aadhar_front_photo" accept="image/*" style="width: 100%; padding: 0.5rem; color: var(--text-color);">
             </div>
             <div>
                 <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Aadhar Back Photo</label>
-                <input type="file" name="aadhar_back_photo" accept="image/*" style="width: 100%; padding: 0.5rem; color: white;">
+                <input type="file" name="aadhar_back_photo" accept="image/*" style="width: 100%; padding: 0.5rem; color: var(--text-color);">
             </div>
             <div>
                 <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">PAN Photo</label>
-                <input type="file" name="pan_photo" accept="image/*" style="width: 100%; padding: 0.5rem; color: white;">
+                <input type="file" name="pan_photo" accept="image/*" style="width: 100%; padding: 0.5rem; color: var(--text-color);">
             </div>
         </div>
-        <div>
-            <a href="{% url 'leads_list' %}" class="btn" style="background: transparent; border: 1px solid var(--text-muted); color: var(--text-muted); margin-right: 1rem;">Cancel</a>
-            <button type="submit" class="btn">Save Lead</button>
+
+        <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+            <a href="{% url 'leads_list' %}" class="btn" style="background: transparent; border: 1px solid var(--text-muted); color: var(--text-muted);">Cancel</a>
+            <button type="submit" class="btn" style="padding: 0.6rem 1.8rem;">Save Lead</button>
         </div>
     </form>
 </div>
+
+<script>
+    const scooterModels = [
+        {% for s in scooters %}
+        { id: "{{ s.id }}", name: "{{ s.name|escapejs }}", price: "{{ s.last_price }}" },
+        {% endfor %}
+    ];
+
+    const stockItems = [
+        {% for st in stock_items %}
+        { id: "{{ st.id }}", name: "{{ st.name|default:st.serial_number|escapejs }} ({{ st.get_item_type_display|escapejs }})", type: "{{ st.item_type }}", serial: "{{ st.serial_number }}" },
+        {% endfor %}
+    ];
+
+    let rowIdCounter = 0;
+
+    function addRequirementRow() {
+        rowIdCounter++;
+        const rowId = 'req-row-' + rowIdCounter;
+        const container = document.getElementById('requirements-container');
+
+        const div = document.createElement('div');
+        div.id = rowId;
+        div.className = 'req-card';
+        div.style.cssText = 'background: var(--bg-color); border: 1px solid var(--border-color); padding: 1rem; border-radius: 8px; position: relative;';
+
+        let scooterOpts = scooterModels.map(s => `<option value="${s.id}" data-price="${s.price}">${s.name} (₹${s.price})</option>`).join('');
+        let stockOpts = stockItems.map(st => `<option value="${st.id}">${st.name}</option>`).join('');
+
+        div.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <span style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted);">Item #${rowIdCounter}</span>
+                <button type="button" onclick="removeRequirementRow('${rowId}')" style="background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 0.85rem; font-weight: 600;">🗑️ Remove</button>
+            </div>
+            <div style="display: grid; grid-template-columns: 1.2fr 1.5fr 1fr 0.8fr 1fr; gap: 0.75rem; align-items: end;">
+                <div>
+                    <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.3rem;">Source</label>
+                    <select name="req_source_type" onchange="onSourceTypeChange('${rowId}')" style="width: 100%; font-size: 0.85rem;">
+                        <option value="SCOOTER">⚡ Scooter Model</option>
+                        <option value="STOCK">📦 DB Stock Item</option>
+                        <option value="CUSTOM">➕ Custom / Other Item</option>
+                    </select>
+                </div>
+
+                <div id="field-scooter-${rowId}">
+                    <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.3rem;">Scooter Model</label>
+                    <select name="req_scooter_id" onchange="onScooterSelect('${rowId}')" style="width: 100%; font-size: 0.85rem;">
+                        <option value="">-- Select Scooter --</option>
+                        ${scooterOpts}
+                    </select>
+                </div>
+
+                <div id="field-stock-${rowId}" style="display: none;">
+                    <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.3rem;">Stock Item</label>
+                    <select name="req_stock_id" style="width: 100%; font-size: 0.85rem;">
+                        <option value="">-- Select Stock Item --</option>
+                        ${stockOpts}
+                    </select>
+                </div>
+
+                <div id="field-custom-${rowId}" style="display: none;">
+                    <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.3rem;">Custom Item Name</label>
+                    <input type="text" name="req_custom_name" placeholder="e.g. Helmet / Charger Cable" style="width: 100%; font-size: 0.85rem;">
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.3rem;">Unit Price (₹)</label>
+                    <input type="number" step="0.01" name="req_unit_price" value="0.00" oninput="calculateTotals()" style="width: 100%; font-size: 0.85rem;">
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.3rem;">Qty</label>
+                    <input type="number" name="req_quantity" value="1" min="1" oninput="calculateTotals()" style="width: 100%; font-size: 0.85rem;">
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.3rem;">Subtotal</label>
+                    <span class="row-subtotal" style="font-weight: 600; color: var(--success); font-size: 0.9rem;">₹0.00</span>
+                </div>
+            </div>
+            <div id="field-add-inv-${rowId}" style="display: none; margin-top: 0.5rem; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" name="req_add_to_inv" value="1" id="chk-${rowId}">
+                <label for="chk-${rowId}" style="font-size: 0.8rem; color: var(--text-muted); cursor: pointer;">Save this custom item to DB Inventory as a new stock item</label>
+            </div>
+        `;
+
+        container.appendChild(div);
+        onSourceTypeChange(rowId);
+    }
+
+    function removeRequirementRow(rowId) {
+        const row = document.getElementById(rowId);
+        if (row) {
+            row.remove();
+            calculateTotals();
+        }
+    }
+
+    function onSourceTypeChange(rowId) {
+        const row = document.getElementById(rowId);
+        if (!row) return;
+        const sourceType = row.querySelector('select[name="req_source_type"]').value;
+
+        const scooterDiv = document.getElementById('field-scooter-' + rowId);
+        const stockDiv = document.getElementById('field-stock-' + rowId);
+        const customDiv = document.getElementById('field-custom-' + rowId);
+        const addInvDiv = document.getElementById('field-add-inv-' + rowId);
+
+        scooterDiv.style.display = (sourceType === 'SCOOTER') ? 'block' : 'none';
+        stockDiv.style.display = (sourceType === 'STOCK') ? 'block' : 'none';
+        customDiv.style.display = (sourceType === 'CUSTOM') ? 'block' : 'none';
+        addInvDiv.style.display = (sourceType === 'CUSTOM') ? 'flex' : 'none';
+
+        if (sourceType === 'SCOOTER') {
+            onScooterSelect(rowId);
+        } else {
+            calculateTotals();
+        }
+    }
+
+    function onScooterSelect(rowId) {
+        const row = document.getElementById(rowId);
+        if (!row) return;
+        const select = row.querySelector('select[name="req_scooter_id"]');
+        const selectedOpt = select.options[select.selectedIndex];
+        if (selectedOpt && selectedOpt.dataset.price) {
+            row.querySelector('input[name="req_unit_price"]').value = selectedOpt.dataset.price;
+        }
+        calculateTotals();
+    }
+
+    function calculateTotals() {
+        let grandTotal = 0;
+        const rows = document.querySelectorAll('#requirements-container .req-card');
+        rows.forEach(row => {
+            const price = parseFloat(row.querySelector('input[name="req_unit_price"]').value) || 0;
+            const qty = parseInt(row.querySelector('input[name="req_quantity"]').value) || 1;
+            const subtotal = price * qty;
+            row.querySelector('.row-subtotal').textContent = '₹' + subtotal.toFixed(2);
+            grandTotal += subtotal;
+        });
+        document.getElementById('grand-total').textContent = '₹' + grandTotal.toFixed(2);
+    }
+
+    // Initialize with 1 default requirement row
+    document.addEventListener('DOMContentLoaded', () => {
+        addRequirementRow();
+    });
+</script>
 {% endblock %}

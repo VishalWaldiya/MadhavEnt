@@ -47,6 +47,11 @@
     
     <form method="post" action="{{ action_url }}" style="margin: 0;">
         {% csrf_token %}
+        {% if selected_ids %}
+            {% for sid in selected_ids %}
+            <input type="hidden" name="selected_ids" value="{{ sid }}">
+            {% endfor %}
+        {% endif %}
         <input type="hidden" name="confirmed" value="1">
         <button type="submit" class="btn" style="background: var(--danger); padding: 0.6rem 1.5rem;">
             {% trans "Confirm & Soft Delete All" %}
