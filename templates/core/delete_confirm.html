@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}Confirm Soft Delete - EV Stock Manager{% endblock %}
+
+{% block content %}
+<div class="header">
+    <div>
+        <h1 style="color: var(--danger);">⚠️ {% trans "Confirm Soft Delete" %}</h1>
+        <p style="color: var(--text-muted); margin-top: 0.5rem;">
+            {% trans "Review connected resources before marking items as deleted." %}
+        </p>
+    </div>
+</div>
+
+<div class="card" style="border-left: 4px solid var(--danger); margin-bottom: 2rem;">
+    <h2 style="margin-bottom: 0.5rem;">Target Item: <span style="color: var(--primary);">{{ item_title }}</span></h2>
+    <p style="color: var(--text-muted);">Type: <strong>{{ item_type }}</strong></p>
+</div>
+
+{% if connected_items %}
+<div class="card" style="margin-bottom: 2rem; border-left: 4px solid #f59e0b;">
+    <h3 style="color: #f59e0b; margin-bottom: 1rem;">
+        ⚠️ {% trans "The following" %} {{ connected_items|length }} {% trans "connected resource(s) will ALSO be soft-deleted:" %}
+    </h3>
+    <table>
+        <thead>
+            <tr>
+                <th>{% trans "Resource Type" %}</th>
+                <th>{% trans "Item Name / Identifier" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in connected_items %}
+            <tr>
+                <td style="font-weight: 600;">{{ c.type }}</td>
+                <td>{{ c.name }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<div class="card" style="display: flex; gap: 1rem; align-items: center; justify-content: flex-end;">
+    <a href="{{ cancel_url|default:'/' }}" class="btn" style="background: var(--text-muted);">{% trans "Cancel" %}</a>
+    
+    <form method="post" action="{{ action_url }}" style="margin: 0;">
+        {% csrf_token %}
+        <input type="hidden" name="confirmed" value="1">
+        <button type="submit" class="btn" style="background: var(--danger); padding: 0.6rem 1.5rem;">
+            {% trans "Confirm & Soft Delete All" %}
+        </button>
+    </form>
+</div>
+{% endblock %}

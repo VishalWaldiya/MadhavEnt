@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Broadcast Notification" %} - EV Stock Manager{% endblock %}
+
+{% block content %}
+<div class="header">
+    <div>
+        <h1>📢 {% trans "Broadcast System Notification" %}</h1>
+        <p style="color: var(--text-muted); margin-top: 0.5rem;">
+            {% trans "Send instant push announcements to all registered user devices." %}
+        </p>
+    </div>
+</div>
+
+<div class="grid" style="grid-template-columns: 1fr 1fr; gap: 2rem;">
+    <div class="card">
+        <h2 style="margin-bottom: 1.5rem; color: var(--primary);">{% trans "Compose Push Notification" %}</h2>
+        <form method="post" action="{% url 'broadcast_notification' %}">
+            {% csrf_token %}
+            <div style="margin-bottom: 1.25rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">{% trans "Notification Title" %}</label>
+                <input type="text" name="title" placeholder="{% trans 'e.g. System Maintenance Notice / Urgent Stock Alert' %}" required style="width: 100%; padding: 0.75rem;">
+            </div>
+
+            <div style="margin-bottom: 1.25rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">{% trans "Notification Message Body" %}</label>
+                <textarea name="message" rows="4" placeholder="{% trans 'Write your announcement message here...' %}" required style="width: 100%; padding: 0.75rem; resize: vertical; font-family: inherit;"></textarea>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">{% trans "Target Link URL (Optional)" %}</label>
+                <input type="text" name="target_url" value="/" placeholder="/" style="width: 100%; padding: 0.75rem;">
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                    {% trans "Where the user will be navigated when tapping the push notification." %}
+                </p>
+            </div>
+
+            <button type="submit" class="btn" style="width: 100%; background: var(--primary); padding: 0.75rem; font-size: 1rem;">
+                🚀 {% trans "Dispatch Broadcast Now" %}
+            </button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2 style="margin-bottom: 1.5rem; color: var(--primary);">{% trans "Recent Broadcast History" %}</h2>
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+            {% for b in recent_broadcasts %}
+            <div style="background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.4rem;">
+                    <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-color);">{{ b.title }}</h4>
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">{{ b.sent_at|date:"M d, H:i" }}</span>
+                </div>
+                <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 0.4rem;">{{ b.message }}</p>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem;">
+                    <span style="color: var(--primary); font-family: monospace;">Target: {{ b.target_url }}</span>
+                    <span style="color: var(--text-muted);">By: {{ b.sender.username|default:"System" }}</span>
+                </div>
+            </div>
+            {% empty %}
+            <p style="color: var(--text-muted); font-size: 0.9rem;">{% trans "No broadcast notifications sent yet." %}</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

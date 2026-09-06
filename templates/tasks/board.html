@@ -8,12 +8,14 @@
 <style>
     .kanban-container {
         display: flex;
-        gap: 1.5rem;
+        gap: 1.25rem;
         overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
         padding-bottom: 1rem;
-        min-height: 70vh;
+        min-height: 65vh;
         align-items: flex-start;
     }
+
     .kanban-column {
         background: var(--bg-color);
         border: 1px solid var(--border-color);
@@ -146,7 +148,13 @@
                             {% trans "Working:" %} {{ task.external_assignee }}
                         </span>
                         {% endif %}
+                        {% if task.comments.exists %}
+                        <span style="font-size: 0.7rem; color: var(--primary); font-weight: 600;">
+                            💬 {{ task.comments.count }} {% trans "comment(s)" %}
+                        </span>
+                        {% endif %}
                     </div>
+
                     
                     <div class="fallback-move" style="display: flex; gap: 0.25rem;">
                         <form action="{% url 'update_task_stage' task.id %}" method="post" style="margin:0;">

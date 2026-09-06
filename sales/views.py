@@ -3,6 +3,10 @@ from django.contrib.auth.decorators import login_required
 from .models import SaleRecord, SaleBattery, SalePhoto
 from inventory.models import ScooterModel, StockItem
 from django.contrib import messages
+from django.contrib.auth import get_user_model
+import uuid
+
+User = get_user_model()
 
 @login_required
 def sales_list(request):
@@ -36,11 +40,7 @@ def add_sale(request):
         chassis = get_object_or_404(StockItem, id=chassis_id)
         charger = get_object_or_404(StockItem, id=charger_id)
         
-        from django.contrib.auth import get_user_model
-        import uuid
-        User = get_user_model()
-        
-        customer, created = User.objects.get_or_create(
+        customer, created = User.all_objects.get_or_create(
             first_name=first_name,
             last_name=last_name,
             phone_number=phone_number,
@@ -86,8 +86,21 @@ def add_sale(request):
         charger.status = 'SOLD'
         charger.save()
 
+        try:
+            from core.views import dispatch_push_notification
+            dispatch_push_notification(
+                category='SALE',
+                title='🛍️ New Sale Recorded',
+                message=f'Sale INV-{sale.id} ({scooter_model.name}) recorded for ₹{total_amount}.',
+                target_url='/sales/',
+                sender=request.user
+            )
+        except Exception:
+            pass
+
         messages.success(request, 'Sale recorded successfully!')
         return redirect('sales_list')
+
         
     models = ScooterModel.objects.all()
     available_scooters = StockItem.objects.filter(item_type='SCOOTER', status='AVAILABLE')
@@ -122,7 +135,7 @@ def search_asset(request):
 
 @login_required
 def invoice_view(request, sale_id):
-    sale = get_object_or_404(SaleRecord, id=sale_id)
+    sale = get_object_or_404(SaleRecord.all_objects, id=sale_id)
     return render(request, 'sales/invoice.html', {'sale': sale})
 
 @login_required
@@ -132,3 +145,13 @@ def gst_report(request):
     total_amt = sum(s.total_amount for s in sales if s.total_amount)
     return render(request, 'sales/gst_report.html', {'sales': sales, 'total_taxable': total_taxable, 'total_amount': total_amt})
 
+@login_required
+def delete_sale(request, sale_id):
+    if request.user.role != 'ADMIN':
+        messages.error(request, 'Access denied. Only administrators can delete sale records.')
+        return redirect('sales_list')
+    sale = get_object_or_404(SaleRecord, id=sale_id)
+    if request.method == 'POST':
+        sale.delete()
+        messages.success(request, f'Sale record INV-{sale.id} moved to Recycle Bin.')
+    return redirect('sales_list')

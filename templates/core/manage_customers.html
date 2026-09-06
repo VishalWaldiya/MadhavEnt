@@ -11,6 +11,7 @@
 </div>
 
 <div class="card">
+    <div class="table-responsive">
     <table>
         <thead>
             <tr>
@@ -19,25 +20,38 @@
                 <th>Aadhar Number</th>
                 <th>PAN Number</th>
                 <th>Joined</th>
+                {% if request.user.role == 'ADMIN' %}
+                <th>Action</th>
+                {% endif %}
             </tr>
         </thead>
         <tbody>
             {% for customer in customers %}
             <tr>
-                <td style="font-weight: 600;">{{ customer.get_full_name }}</td>
+                <td style="font-weight: 600;">{{ customer.get_full_name|default:customer.username }}</td>
                 <td>{{ customer.phone_number|default:"-" }}</td>
                 <td style="font-family: monospace;">{{ customer.aadhar_number|default:"-" }}</td>
                 <td style="font-family: monospace;">{{ customer.pan_number|default:"-" }}</td>
                 <td>{{ customer.date_joined|date:"M d, Y" }}</td>
+                {% if request.user.role == 'ADMIN' %}
+                <td>
+                    <form action="{% url 'delete_customer' customer.id %}" method="post" style="margin: 0;" onsubmit="return confirm('Are you sure you want to move customer {{ customer.get_full_name|default:customer.username }} to Recycle Bin?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn" style="background: var(--danger); padding: 0.25rem 0.6rem; font-size: 0.75rem;">Delete</button>
+                    </form>
+                </td>
+                {% endif %}
             </tr>
             {% empty %}
             <tr>
-                <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted)">
+                <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted)">
                     No customer profiles exist yet. Capturing a lead or sale will automatically create one.
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+    </div>
 </div>
+
 {% endblock %}

@@ -15,6 +15,7 @@
     <div class="header" style="margin-bottom: 1rem;">
         <h2>Sale Records</h2>
     </div>
+    <div class="table-responsive">
     <table>
         <thead>
             <tr>
@@ -30,11 +31,19 @@
             {% for sale in sales %}
             <tr>
                 <td>{{ sale.sale_date|date:"M d, Y H:i" }}</td>
-                <td style="font-weight: 600;">{{ sale.customer.get_full_name }}</td>
+                <td style="font-weight: 600;">{{ sale.customer.get_full_name|default:"Unknown" }}</td>
                 <td>{{ sale.scooter_model.name }}</td>
                 <td style="font-family: monospace;">{{ sale.chassis_number.serial_number }}</td>
                 <td>₹{{ sale.total_amount }}</td>
-                <td><a href="{% url 'invoice_view' sale.id %}" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600;">📄 Invoice</a></td>
+                <td style="display: flex; gap: 0.5rem; align-items: center;">
+                    <a href="{% url 'invoice_view' sale.id %}" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600;">📄 Invoice</a>
+                    {% if request.user.role == 'ADMIN' %}
+                    <form action="{% url 'delete_sale' sale.id %}" method="post" style="margin: 0;" onsubmit="return confirm('Move sale INV-{{ sale.id }} to Recycle Bin?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn" style="background: var(--danger); padding: 0.2rem 0.5rem; font-size: 0.75rem;">Delete</button>
+                    </form>
+                    {% endif %}
+                </td>
             </tr>
             {% empty %}
             <tr>
@@ -45,5 +54,7 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
 </div>
+
 {% endblock %}

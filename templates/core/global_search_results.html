@@ -27,87 +27,152 @@
     {% if results.tasks %}
     <div class="card" style="margin-bottom: 2rem;">
         <h2 style="color: #a855f7; margin-bottom: 1rem;">Shop Tasks</h2>
+        <div class="table-responsive">
         <table>
+
             <thead>
                 <tr>
                     <th>ID</th>
                     <th>Title</th>
                     <th>Assignee</th>
                     <th>Stage</th>
+                    <th>Status</th>
                     <th>Action</th>
                 </tr>
             </thead>
             <tbody>
                 {% for task in results.tasks %}
-                <tr>
-                    <td><span style="font-weight: 700;">{{ task.task_number }}</span></td>
+                <tr {% if task.is_deleted %}style="opacity: 0.7; background: rgba(239,68,68,0.05);"{% endif %}>
+                    <td>
+                        <span style="font-weight: 700;">{{ task.task_number }}</span>
+                        {% if task.is_deleted %}
+                        <span style="background: var(--danger); color: white; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.7rem; margin-left: 0.4rem; font-weight: 700;">DELETED</span>
+                        {% endif %}
+                    </td>
                     <td>{{ task.title }}</td>
-                    <td>{{ task.external_assignee|default:task.assigned_to.username }}</td>
+                    <td>{% if task.external_assignee %}{{ task.external_assignee }}{% elif task.assigned_to %}{{ task.assigned_to.username }}{% else %}Unassigned{% endif %}</td>
                     <td>{{ task.current_stage.name }}</td>
-                    <td><a href="{% url 'task_detail' task.id %}" style="color: var(--primary);">View Details</a></td>
+                    <td>
+                        {% if task.is_deleted %}
+                        <span style="color: var(--danger); font-size: 0.8rem; font-weight: 600;">Soft Deleted</span>
+                        {% else %}
+                        <span style="color: var(--success); font-size: 0.8rem;">Active</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if task.is_deleted %}
+                        <span style="color: var(--text-muted); opacity: 0.5; cursor: not-allowed; font-size: 0.85rem; font-weight: 600;">View Details (Disabled)</span>
+                        {% else %}
+                        <a href="{% url 'task_detail' task.id %}" style="color: var(--primary);">View Details</a>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+        </div>
     </div>
+
     {% endif %}
 
     {% if results.sales %}
     <div class="card" style="margin-bottom: 2rem;">
         <h2 style="color: var(--primary); margin-bottom: 1rem;">Sales & Invoices</h2>
+        <div class="table-responsive">
         <table>
+
             <thead>
                 <tr>
                     <th>Invoice</th>
                     <th>Customer Name</th>
                     <th>Contact</th>
                     <th>Chassis</th>
+                    <th>Status</th>
                     <th>Action</th>
                 </tr>
             </thead>
             <tbody>
                 {% for sale in results.sales %}
-                <tr>
-                    <td>INV-{{ sale.id }}</td>
-                    <td style="font-weight: 600;">{{ sale.customer.get_full_name }}</td>
+                <tr {% if sale.is_deleted %}style="opacity: 0.7; background: rgba(239,68,68,0.05);"{% endif %}>
+                    <td>
+                        INV-{{ sale.id }}
+                        {% if sale.is_deleted %}
+                        <span style="background: var(--danger); color: white; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.7rem; margin-left: 0.4rem; font-weight: 700;">DELETED</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-weight: 600;">{{ sale.customer.get_full_name|default:"Unknown" }}</td>
                     <td>{{ sale.customer.phone_number }}</td>
                     <td>{{ sale.chassis_number.serial_number }}</td>
-                    <td><a href="{% url 'invoice_view' sale.id %}" target="_blank" style="color: var(--primary);">Invoice</a></td>
+                    <td>
+                        {% if sale.is_deleted %}
+                        <span style="color: var(--danger); font-size: 0.8rem; font-weight: 600;">Soft Deleted</span>
+                        {% else %}
+                        <span style="color: var(--success); font-size: 0.8rem;">Active</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if sale.is_deleted %}
+                        <span style="color: var(--text-muted); opacity: 0.5; cursor: not-allowed; font-size: 0.85rem; font-weight: 600;">Invoice (Disabled)</span>
+                        {% else %}
+                        <a href="{% url 'invoice_view' sale.id %}" target="_blank" style="color: var(--primary);">Invoice</a>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+        </div>
     </div>
+
     {% endif %}
 
     {% if results.leads %}
     <div class="card" style="margin-bottom: 2rem;">
         <h2 style="color: var(--success); margin-bottom: 1rem;">Leads</h2>
+        <div class="table-responsive">
         <table>
+
             <thead>
                 <tr>
                     <th>Customer Name</th>
                     <th>Contact</th>
                     <th>Status</th>
+                    <th>Soft Delete Tag</th>
                 </tr>
             </thead>
             <tbody>
                 {% for lead in results.leads %}
-                <tr>
-                    <td style="font-weight: 600;">{{ lead.customer.get_full_name }}</td>
+                <tr {% if lead.is_deleted %}style="opacity: 0.7; background: rgba(239,68,68,0.05);"{% endif %}>
+                    <td style="font-weight: 600;">
+                        {{ lead.customer.get_full_name|default:"Unknown" }}
+                        {% if lead.is_deleted %}
+                        <span style="background: var(--danger); color: white; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.7rem; margin-left: 0.4rem; font-weight: 700;">DELETED</span>
+                        {% endif %}
+                    </td>
                     <td>{{ lead.customer.phone_number }}</td>
                     <td>{{ lead.get_status_display }}</td>
+                    <td>
+                        {% if lead.is_deleted %}
+                        <span style="color: var(--danger); font-size: 0.8rem; font-weight: 600;">Soft Deleted</span>
+                        {% else %}
+                        <span style="color: var(--success); font-size: 0.8rem;">Active</span>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+        </div>
     </div>
+
     {% endif %}
 
     {% if results.inventory_items %}
     <div class="card" style="margin-bottom: 2rem;">
         <h2 style="color: var(--primary); margin-bottom: 1rem;">Inventory</h2>
+        <div class="table-responsive">
         <table>
+
             <thead>
                 <tr>
                     <th>Type</th>
@@ -118,70 +183,126 @@
             </thead>
             <tbody>
                 {% for item in results.inventory_items %}
-                <tr>
+                <tr {% if item.is_deleted %}style="opacity: 0.7; background: rgba(239,68,68,0.05);"{% endif %}>
                     <td>{{ item.get_item_type_display }}</td>
-                    <td style="font-family: monospace;">{{ item.serial_number }}</td>
+                    <td style="font-family: monospace;">
+                        {{ item.serial_number }}
+                        {% if item.is_deleted %}
+                        <span style="background: var(--danger); color: white; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.7rem; margin-left: 0.4rem; font-weight: 700;">DELETED</span>
+                        {% endif %}
+                    </td>
                     <td>{{ item.get_status_display }}</td>
-                    <td><a href="{% url 'search_asset' %}?q={{ item.serial_number }}" style="color: var(--primary);">Track Asset</a></td>
+                    <td>
+                        {% if item.is_deleted %}
+                        <span style="color: var(--text-muted); opacity: 0.5; cursor: not-allowed; font-size: 0.85rem; font-weight: 600;">Track Asset (Disabled)</span>
+                        {% else %}
+                        <a href="{% url 'search_asset' %}?q={{ item.serial_number }}" style="color: var(--primary);">Track Asset</a>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+        </div>
     </div>
+
     {% endif %}
 
     {% if request.user.role == 'ADMIN' %}
         {% if results.notes %}
         <div class="card" style="margin-bottom: 2rem; border-left: 4px solid #f59e0b;">
             <h2 style="color: #f59e0b; margin-bottom: 1rem;">Shop Notepad (Admin Only)</h2>
-            <table>
+            <div class="table-responsive">
+        <table>
+
                 <tbody>
                     {% for note in results.notes %}
-                    <tr>
-                        <td style="font-weight: 600; width: 200px;">{{ note.title }}</td>
+                    <tr {% if note.is_deleted %}style="opacity: 0.7; background: rgba(239,68,68,0.05);"{% endif %}>
+                        <td style="font-weight: 600; width: 200px;">
+                            {{ note.title }}
+                            {% if note.is_deleted %}
+                            <span style="background: var(--danger); color: white; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.7rem; margin-left: 0.4rem; font-weight: 700;">DELETED</span>
+                            {% endif %}
+                        </td>
                         <td style="color: var(--text-muted);">{{ note.content|truncatechars:100 }}</td>
-                        <td><a href="{% url 'notes_list' %}" style="color: #f59e0b;">View</a></td>
+                        <td>
+                            {% if note.is_deleted %}
+                            <span style="color: var(--text-muted); opacity: 0.5; cursor: not-allowed; font-size: 0.85rem; font-weight: 600;">View (Disabled)</span>
+                            {% else %}
+                            <a href="{% url 'notes_list' %}" style="color: #f59e0b;">View</a>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
         </div>
         {% endif %}
 
         {% if results.templates %}
         <div class="card" style="margin-bottom: 2rem;">
             <h2 style="color: var(--primary); margin-bottom: 1rem;">Workflow Templates (Admin Only)</h2>
-            <table>
+            <div class="table-responsive">
+        <table>
+
                 <tbody>
                     {% for t in results.templates %}
-                    <tr>
-                        <td style="font-weight: 600;">{{ t.name }}</td>
+                    <tr {% if t.is_deleted %}style="opacity: 0.7; background: rgba(239,68,68,0.05);"{% endif %}>
+                        <td style="font-weight: 600;">
+                            {{ t.name }}
+                            {% if t.is_deleted %}
+                            <span style="background: var(--danger); color: white; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.7rem; margin-left: 0.4rem; font-weight: 700;">DELETED</span>
+                            {% endif %}
+                        </td>
                         <td>Prefix: {{ t.prefix }}</td>
-                        <td><a href="{% url 'template_list' %}" style="color: var(--primary);">Manage</a></td>
+                        <td>
+                            {% if t.is_deleted %}
+                            <span style="color: var(--text-muted); opacity: 0.5; cursor: not-allowed; font-size: 0.85rem; font-weight: 600;">Manage (Disabled)</span>
+                            {% else %}
+                            <a href="{% url 'template_list' %}" style="color: var(--primary);">Manage</a>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
         </div>
         {% endif %}
         
         {% if results.customers %}
         <div class="card" style="margin-bottom: 2rem;">
             <h2 style="color: var(--primary); margin-bottom: 1rem;">Customers (Admin Only)</h2>
-            <table>
+            <div class="table-responsive">
+        <table>
+
                 <tbody>
                     {% for c in results.customers %}
-                    <tr>
-                        <td style="font-weight: 600;">{{ c.get_full_name }}</td>
+                    <tr {% if c.is_deleted %}style="opacity: 0.7; background: rgba(239,68,68,0.05);"{% endif %}>
+                        <td style="font-weight: 600;">
+                            {{ c.get_full_name|default:c.username }}
+                            {% if c.is_deleted %}
+                            <span style="background: var(--danger); color: white; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.7rem; margin-left: 0.4rem; font-weight: 700;">DELETED</span>
+                            {% endif %}
+                        </td>
                         <td>{{ c.phone_number }}</td>
-                        <td><a href="{% url 'manage_customers' %}" style="color: var(--primary);">View CRM</a></td>
+                        <td>
+                            {% if c.is_deleted %}
+                            <span style="color: var(--text-muted); opacity: 0.5; cursor: not-allowed; font-size: 0.85rem; font-weight: 600;">View CRM (Disabled)</span>
+                            {% else %}
+                            <a href="{% url 'manage_customers' %}" style="color: var(--primary);">View CRM</a>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+        </div>
         {% endif %}
     {% endif %}
+
 
 {% endif %}
 {% endblock %}

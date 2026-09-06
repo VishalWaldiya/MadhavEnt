@@ -7,4 +7,5 @@ urlpatterns = [
     path('search/', views.search_asset, name='search_asset'),
     path('gst/', views.gst_report, name='gst_report'),
     path('invoice/<int:sale_id>/', views.invoice_view, name='invoice_view'),
+    path('<int:sale_id>/delete/', views.delete_sale, name='delete_sale'),
 ]

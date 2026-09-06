@@ -1,7 +1,8 @@
 from django.db import models
 from inventory.models import ScooterModel, StockItem
+from core.models import SoftDeleteModel
 
-class SaleRecord(models.Model):
+class SaleRecord(SoftDeleteModel):
     scooter_model = models.ForeignKey(ScooterModel, on_delete=models.PROTECT)
     chassis_number = models.ForeignKey(StockItem, on_delete=models.PROTECT, related_name='sale_as_scooter', limit_choices_to={'item_type': 'SCOOTER'})
     motor_number = models.CharField(max_length=100) # Often motor number is tracked alongside chassis

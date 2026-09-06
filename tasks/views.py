@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import TaskTemplate, TaskStage, ShopTask, TaskPhoto, TaskHistory
+from .models import TaskTemplate, TaskStage, ShopTask, TaskPhoto, TaskHistory, TaskComment
 from django.http import JsonResponse
 from django.db import transaction
 
@@ -164,7 +164,7 @@ def update_task_stage(request, task_id):
 
 @login_required
 def task_detail(request, task_id):
-    task = get_object_or_404(ShopTask, id=task_id)
+    task = get_object_or_404(ShopTask.all_objects, id=task_id)
     return render(request, 'tasks/task_detail.html', {'task': task})
 
 @login_required
@@ -216,3 +216,117 @@ def add_task_photo(request, task_id):
         )
         messages.success(request, f'Added {len(photos)} photos.')
     return redirect('task_detail', task_id=task_id)
+
+@login_required
+def add_task_comment(request, task_id):
+    if request.method == 'POST':
+        task = get_object_or_404(ShopTask.all_objects, id=task_id)
+
+        if getattr(task, 'is_deleted', False):
+            messages.error(request, 'Cannot comment on soft-deleted tasks.')
+            return redirect('task_detail', task_id=task_id)
+
+        content = request.POST.get('content', '').strip()
+        if content:
+            TaskComment.objects.create(
+                task=task,
+                author=request.user,
+                content=content
+            )
+            TaskHistory.objects.create(
+                task=task,
+                action_type='COMMENT_ADDED',
+                moved_by=request.user,
+                details=f"Comment: {content[:60]}{'...' if len(content) > 60 else ''}"
+            )
+            try:
+                from core.views import dispatch_push_notification
+                dispatch_push_notification(
+                    category='TASK_COMMENT',
+                    title=f'💬 New Comment on {task.task_number}',
+                    message=f'{request.user.username}: {content[:80]}',
+                    target_url=f'/tasks/{task.id}/',
+                    sender=request.user
+                )
+            except Exception:
+                pass
+            messages.success(request, 'Comment added successfully.')
+    return redirect('task_detail', task_id=task_id)
+
+
+
+@login_required
+def edit_task_comment(request, comment_id):
+    comment = get_object_or_404(TaskComment, id=comment_id)
+    if comment.author != request.user:
+        messages.error(request, 'Access denied. You can only edit your own comments.')
+        return redirect('task_detail', task_id=comment.task.id)
+
+    if request.method == 'POST':
+        new_content = request.POST.get('content', '').strip()
+        if new_content:
+            comment.content = new_content
+            comment.save()
+            TaskHistory.objects.create(
+                task=comment.task,
+                action_type='EDITED',
+                moved_by=request.user,
+                details=f"Edited comment: {new_content[:60]}{'...' if len(new_content) > 60 else ''}"
+            )
+            messages.success(request, 'Comment updated successfully.')
+    return redirect('task_detail', task_id=comment.task.id)
+
+
+@login_required
+def delete_task_comment(request, comment_id):
+    comment = get_object_or_404(TaskComment, id=comment_id)
+    if comment.author != request.user:
+        messages.error(request, 'Access denied. You can only delete your own comments.')
+        return redirect('task_detail', task_id=comment.task.id)
+
+    task_id = comment.task.id
+    if request.method == 'POST':
+        comment.delete()
+        messages.success(request, 'Comment deleted successfully.')
+    return redirect('task_detail', task_id=task_id)
+
+
+
+from django.urls import reverse
+
+@login_required
+def delete_task(request, task_id):
+    if request.user.role != 'ADMIN':
+        messages.error(request, 'Access denied. Only administrators can delete tasks.')
+        return redirect('board_view')
+    task = get_object_or_404(ShopTask, id=task_id)
+    template_id = task.template.id
+    if request.method == 'POST':
+        task.delete(cascade=True)
+        messages.success(request, f'Task {task.task_number} moved to Recycle Bin.')
+    return redirect(f"/tasks/board/?template={template_id}")
+
+@login_required
+def delete_template(request, template_id):
+    if request.user.role != 'ADMIN':
+        messages.error(request, 'Access denied. Only administrators can delete workflow templates.')
+        return redirect('template_list')
+    template = get_object_or_404(TaskTemplate, id=template_id)
+    connected = template.get_connected_resources(include_deleted=False)
+
+    if connected and request.POST.get('confirmed') != '1':
+        return render(request, 'core/delete_confirm.html', {
+            'item_type': 'Workflow Template',
+            'item_title': template.name,
+            'connected_items': connected,
+            'action_url': reverse('delete_template', args=[template.id]),
+            'cancel_url': request.META.get('HTTP_REFERER') or reverse('template_list'),
+        })
+
+    if request.method == 'POST':
+        template.delete(cascade=True)
+        msg = f'Workflow template {template.name} moved to Recycle Bin.'
+        if connected:
+            msg += f' ({len(connected)} connected task(s) also soft-deleted).'
+        messages.success(request, msg)
+    return redirect('template_list')

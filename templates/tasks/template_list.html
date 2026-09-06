@@ -29,7 +29,15 @@
             {% endfor %}
         </div>
         
-        <a href="{% url 'board_view' %}?template={{ template.id }}" class="btn" style="width: 100%; text-align: center; background: var(--success);">{% trans "View Board" %}</a>
+        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+            <a href="{% url 'board_view' %}?template={{ template.id }}" class="btn" style="flex: 1; text-align: center; background: var(--success);">{% trans "View Board" %}</a>
+            {% if request.user.role == 'ADMIN' %}
+            <form action="{% url 'delete_template' template.id %}" method="post" style="margin:0;" onsubmit="return confirm('Move workflow template {{ template.name }} to Recycle Bin?');">
+                {% csrf_token %}
+                <button type="submit" class="btn" style="background: var(--danger); padding: 0.5rem 0.8rem;">{% trans "Delete" %}</button>
+            </form>
+            {% endif %}
+        </div>
     </div>
     {% empty %}
     <div class="card" style="grid-column: 1 / -1; text-align: center; padding: 3rem;">

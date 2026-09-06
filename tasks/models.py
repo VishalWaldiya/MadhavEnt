@@ -1,12 +1,26 @@
 from django.db import models
 from django.conf import settings
+from core.models import SoftDeleteModel
 
-class TaskTemplate(models.Model):
+class TaskTemplate(SoftDeleteModel):
     name = models.CharField(max_length=100)
     prefix = models.CharField(max_length=10, default="TASK")
     next_number = models.PositiveIntegerField(default=1)
     description = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def get_connected_resources(self, include_deleted=False):
+        filter_func = (lambda manager: manager.all()) if include_deleted else (lambda manager: manager.filter(is_deleted=False))
+        connected = []
+
+        for task in filter_func(ShopTask.all_objects.filter(template=self)):
+            connected.append({
+                'type': 'Shop Task',
+                'id': task.id,
+                'name': f"[{task.task_number}] {task.title}",
+                'object': task
+            })
+        return connected
 
     def __str__(self):
         return self.name
@@ -28,7 +42,7 @@ class TaskStage(models.Model):
     def __str__(self):
         return f"{self.template.name} - {self.name}"
 
-class ShopTask(models.Model):
+class ShopTask(SoftDeleteModel):
     template = models.ForeignKey(TaskTemplate, on_delete=models.CASCADE)
     task_number = models.CharField(max_length=20, unique=True, blank=True)
     title = models.CharField(max_length=200)
@@ -50,12 +64,26 @@ class TaskPhoto(models.Model):
     def __str__(self):
         return f"Photo for {self.task.task_number}"
 
+class TaskComment(models.Model):
+    task = models.ForeignKey(ShopTask, on_delete=models.CASCADE, related_name='comments')
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"Comment by {self.author.username} on {self.task.task_number}"
+
+
 class TaskHistory(models.Model):
     ACTION_TYPES = [
         ('CREATED', 'Task Created'),
         ('STAGE_MOVE', 'Stage Changed'),
         ('EDITED', 'Task Details Updated'),
         ('PHOTO_ADDED', 'Photo Added'),
+        ('COMMENT_ADDED', 'Comment Added'),
     ]
     task = models.ForeignKey(ShopTask, on_delete=models.CASCADE, related_name='history')
     action_type = models.CharField(max_length=20, choices=ACTION_TYPES, default='STAGE_MOVE')
@@ -70,3 +98,4 @@ class TaskHistory(models.Model):
 
     def __str__(self):
         return f"{self.task.task_number}: {self.from_stage} -> {self.to_stage}"
+

@@ -1,0 +1,357 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}Recycle Bin - EV Stock Manager{% endblock %}
+
+{% block content %}
+<div class="header">
+    <div>
+        <h1>🗑️ {% trans "Recycle Bin" %}</h1>
+        <p style="color: var(--text-muted); margin-top: 0.5rem;">
+            {% trans "Manage soft-deleted items. Restore items or permanently delete them from the system." %}
+        </p>
+    </div>
+    {% if total_deleted > 0 %}
+    <form action="{% url 'empty_recycle_bin' %}" method="post" onsubmit="return confirm('⚠️ Are you sure you want to PERMANENTLY delete ALL items in the Recycle Bin? This action CANNOT be undone!');">
+        {% csrf_token %}
+        <button type="submit" class="btn" style="background: var(--danger);">{% trans "Empty Recycle Bin" %}</button>
+    </form>
+    {% endif %}
+</div>
+
+{% if total_deleted == 0 %}
+<div class="card" style="text-align: center; padding: 3rem;">
+    <p style="color: var(--text-muted); font-size: 1.1rem;">{% trans "The Recycle Bin is empty. No deleted resources found." %}</p>
+</div>
+{% else %}
+
+    {% if deleted_staff %}
+    <div class="card" style="margin-bottom: 2rem;">
+        <h2 style="color: var(--danger); margin-bottom: 1rem;">{% trans "Deleted Staff Users" %}</h2>
+        <div class="table-responsive">
+        <table>
+
+            <thead>
+                <tr>
+                    <th>{% trans "Username" %}</th>
+                    <th>{% trans "Role" %}</th>
+                    <th>{% trans "Deleted At" %}</th>
+                    <th>{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in deleted_staff %}
+                <tr>
+                    <td style="font-weight: 600;">{{ u.username }}</td>
+                    <td>{{ u.get_role_display }}</td>
+                    <td>{{ u.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
+                    <td style="display: flex; gap: 0.5rem;">
+                        <a href="{% url 'restore_item' 'user' u.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
+                        <form action="{% url 'hard_delete_item' 'user' u.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete user {{ u.username }}? This cannot be undone!');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    {% endif %}
+
+    {% if deleted_customers %}
+    <div class="card" style="margin-bottom: 2rem;">
+        <h2 style="color: var(--danger); margin-bottom: 1rem;">{% trans "Deleted Customer Profiles" %}</h2>
+        <div class="table-responsive">
+        <table>
+
+            <thead>
+                <tr>
+                    <th>{% trans "Name" %}</th>
+                    <th>{% trans "Phone Number" %}</th>
+                    <th>{% trans "Deleted At" %}</th>
+                    <th>{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in deleted_customers %}
+                <tr>
+                    <td style="font-weight: 600;">{{ c.get_full_name|default:c.username }}</td>
+                    <td>{{ c.phone_number|default:"-" }}</td>
+                    <td>{{ c.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
+                    <td style="display: flex; gap: 0.5rem;">
+                        <a href="{% url 'restore_item' 'user' c.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
+                        <form action="{% url 'hard_delete_item' 'user' c.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete customer {{ c.get_full_name }}?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    {% endif %}
+
+    {% if deleted_stock_items %}
+    <div class="card" style="margin-bottom: 2rem;">
+        <h2 style="color: var(--danger); margin-bottom: 1rem;">{% trans "Deleted Inventory Items" %}</h2>
+        <div class="table-responsive">
+        <table>
+
+            <thead>
+                <tr>
+                    <th>{% trans "Type" %}</th>
+                    <th>{% trans "Serial Number" %}</th>
+                    <th>{% trans "Name" %}</th>
+                    <th>{% trans "Deleted At" %}</th>
+                    <th>{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in deleted_stock_items %}
+                <tr>
+                    <td>{{ item.get_item_type_display }}</td>
+                    <td style="font-family: monospace;">{{ item.serial_number }}</td>
+                    <td>{{ item.name }}</td>
+                    <td>{{ item.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
+                    <td style="display: flex; gap: 0.5rem;">
+                        <a href="{% url 'restore_item' 'stockitem' item.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
+                        <form action="{% url 'hard_delete_item' 'stockitem' item.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete stock item {{ item.serial_number }}?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    {% endif %}
+
+    {% if deleted_scooter_models %}
+    <div class="card" style="margin-bottom: 2rem;">
+        <h2 style="color: var(--danger); margin-bottom: 1rem;">{% trans "Deleted Scooter Models" %}</h2>
+        <div class="table-responsive">
+        <table>
+
+            <thead>
+                <tr>
+                    <th>{% trans "Model Name" %}</th>
+                    <th>{% trans "Price" %}</th>
+                    <th>{% trans "Deleted At" %}</th>
+                    <th>{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in deleted_scooter_models %}
+                <tr>
+                    <td style="font-weight: 600;">{{ m.name }}</td>
+                    <td>₹{{ m.last_price }}</td>
+                    <td>{{ m.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
+                    <td style="display: flex; gap: 0.5rem;">
+                        <a href="{% url 'restore_item' 'scootermodel' m.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
+                        <form action="{% url 'hard_delete_item' 'scootermodel' m.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete scooter model {{ m.name }}?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    {% endif %}
+
+    {% if deleted_sales %}
+    <div class="card" style="margin-bottom: 2rem;">
+        <h2 style="color: var(--danger); margin-bottom: 1rem;">{% trans "Deleted Sales Records" %}</h2>
+        <div class="table-responsive">
+        <table>
+
+            <thead>
+                <tr>
+                    <th>{% trans "Invoice" %}</th>
+                    <th>{% trans "Customer" %}</th>
+                    <th>{% trans "Total Amount" %}</th>
+                    <th>{% trans "Deleted At" %}</th>
+                    <th>{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in deleted_sales %}
+                <tr>
+                    <td>INV-{{ s.id }}</td>
+                    <td style="font-weight: 600;">{{ s.customer.get_full_name|default:"Unknown" }}</td>
+                    <td>₹{{ s.total_amount }}</td>
+                    <td>{{ s.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
+                    <td style="display: flex; gap: 0.5rem;">
+                        <a href="{% url 'restore_item' 'salerecord' s.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
+                        <form action="{% url 'hard_delete_item' 'salerecord' s.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete Sale INV-{{ s.id }}?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    {% endif %}
+
+    {% if deleted_leads %}
+    <div class="card" style="margin-bottom: 2rem;">
+        <h2 style="color: var(--danger); margin-bottom: 1rem;">{% trans "Deleted Leads" %}</h2>
+        <div class="table-responsive">
+        <table>
+
+            <thead>
+                <tr>
+                    <th>{% trans "Customer Name" %}</th>
+                    <th>{% trans "Interested Items" %}</th>
+                    <th>{% trans "Deleted At" %}</th>
+                    <th>{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for l in deleted_leads %}
+                <tr>
+                    <td style="font-weight: 600;">{{ l.customer.get_full_name|default:"Unknown" }}</td>
+                    <td>{{ l.interested_items }}</td>
+                    <td>{{ l.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
+                    <td style="display: flex; gap: 0.5rem;">
+                        <a href="{% url 'restore_item' 'lead' l.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
+                        <form action="{% url 'hard_delete_item' 'lead' l.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete lead?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    {% endif %}
+
+    {% if deleted_tasks %}
+    <div class="card" style="margin-bottom: 2rem;">
+        <h2 style="color: var(--danger); margin-bottom: 1rem;">{% trans "Deleted Tasks" %}</h2>
+        <div class="table-responsive">
+        <table>
+
+            <thead>
+                <tr>
+                    <th>{% trans "Task Number" %}</th>
+                    <th>{% trans "Title" %}</th>
+                    <th>{% trans "Deleted At" %}</th>
+                    <th>{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in deleted_tasks %}
+                <tr>
+                    <td style="font-weight: 700;">{{ t.task_number }}</td>
+                    <td>{{ t.title }}</td>
+                    <td>{{ t.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
+                    <td style="display: flex; gap: 0.5rem;">
+                        <a href="{% url 'restore_item' 'shoptask' t.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
+                        <form action="{% url 'hard_delete_item' 'shoptask' t.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete task {{ t.task_number }}?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    {% endif %}
+
+    {% if deleted_notes %}
+    <div class="card" style="margin-bottom: 2rem;">
+        <h2 style="color: var(--danger); margin-bottom: 1rem;">{% trans "Deleted Shop Notes" %}</h2>
+        <div class="table-responsive">
+        <table>
+
+            <thead>
+                <tr>
+                    <th>{% trans "Title" %}</th>
+                    <th>{% trans "Content Preview" %}</th>
+                    <th>{% trans "Deleted At" %}</th>
+                    <th>{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for n in deleted_notes %}
+                <tr>
+                    <td style="font-weight: 600;">{{ n.title }}</td>
+                    <td style="color: var(--text-muted);">{{ n.content|truncatechars:80 }}</td>
+                    <td>{{ n.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
+                    <td style="display: flex; gap: 0.5rem;">
+                        <a href="{% url 'restore_item' 'note' n.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
+                        <form action="{% url 'hard_delete_item' 'note' n.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete note {{ n.title }}?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    {% endif %}
+
+    {% if deleted_templates %}
+    <div class="card" style="margin-bottom: 2rem;">
+        <h2 style="color: var(--danger); margin-bottom: 1rem;">{% trans "Deleted Workflow Templates" %}</h2>
+        <div class="table-responsive">
+        <table>
+
+            <thead>
+                <tr>
+                    <th>{% trans "Template Name" %}</th>
+                    <th>{% trans "Prefix" %}</th>
+                    <th>{% trans "Deleted At" %}</th>
+                    <th>{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tmpl in deleted_templates %}
+                <tr>
+                    <td style="font-weight: 600;">{{ tmpl.name }}</td>
+                    <td>{{ tmpl.prefix }}</td>
+                    <td>{{ tmpl.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
+                    <td style="display: flex; gap: 0.5rem;">
+                        <a href="{% url 'restore_item' 'tasktemplate' tmpl.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
+                        <form action="{% url 'hard_delete_item' 'tasktemplate' tmpl.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete workflow template {{ tmpl.name }}?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    {% endif %}
+
+{% endif %}
+{% endblock %}

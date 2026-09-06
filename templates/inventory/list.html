@@ -18,6 +18,7 @@
     <div class="header" style="margin-bottom: 1rem;">
         <h2>Incoming Stock Items</h2>
     </div>
+    <div class="table-responsive">
     <table>
         <thead>
             <tr>
@@ -26,6 +27,9 @@
                 <th>Serial Number</th>
                 <th>Status</th>
                 <th>Purchase Date</th>
+                {% if request.user.role == 'ADMIN' %}
+                <th>Action</th>
+                {% endif %}
             </tr>
         </thead>
         <tbody>
@@ -50,22 +54,32 @@
                     {% endif %}
                 </td>
                 <td>{{ item.purchase_date }}</td>
+                {% if request.user.role == 'ADMIN' %}
+                <td>
+                    <form action="{% url 'delete_stock_item' item.id %}" method="post" style="margin: 0;" onsubmit="return confirm('Move stock item {{ item.serial_number }} to Recycle Bin?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn" style="background: var(--danger); padding: 0.25rem 0.6rem; font-size: 0.75rem;">Delete</button>
+                    </form>
+                </td>
+                {% endif %}
             </tr>
             {% empty %}
             <tr>
-                <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted)">
+                <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted)">
                     No stock items available. Add stock items using the button above.
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+    </div>
 </div>
 
 <div class="card" style="margin-top: 2rem;">
     <div class="header" style="margin-bottom: 1rem;">
         <h2>Registered Scooter Models</h2>
     </div>
+    <div class="table-responsive">
     <table>
         <thead>
             <tr>
@@ -74,6 +88,9 @@
                 <th>Power (Watts)</th>
                 <th>Charging Time (hrs)</th>
                 <th>Last Price</th>
+                {% if request.user.role == 'ADMIN' %}
+                <th>Action</th>
+                {% endif %}
             </tr>
         </thead>
         <tbody>
@@ -84,15 +101,25 @@
                 <td>{{ scooter.watts }} W</td>
                 <td>{{ scooter.charging_time }} h</td>
                 <td>₹{{ scooter.last_price }}</td>
+                {% if request.user.role == 'ADMIN' %}
+                <td>
+                    <form action="{% url 'delete_scooter_model' scooter.id %}" method="post" style="margin: 0;" onsubmit="return confirm('Move scooter model {{ scooter.name }} to Recycle Bin?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn" style="background: var(--danger); padding: 0.25rem 0.6rem; font-size: 0.75rem;">Delete</button>
+                    </form>
+                </td>
+                {% endif %}
             </tr>
             {% empty %}
             <tr>
-                <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted)">
+                <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted)">
                     No scooter models registered.
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+    </div>
 </div>
+
 {% endblock %}

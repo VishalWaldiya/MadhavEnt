@@ -1,8 +1,9 @@
 from django.db import models
 from django.conf import settings
 from inventory.models import ScooterModel
+from core.models import SoftDeleteModel
 
-class Lead(models.Model):
+class Lead(SoftDeleteModel):
     STATUS_CHOICES = (
         ('NEW', 'New'),
         ('IN_PROGRESS', 'In Progress'),
@@ -18,10 +19,23 @@ class Lead(models.Model):
     
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def get_connected_resources(self, include_deleted=False):
+        filter_func = (lambda manager: manager.all()) if include_deleted else (lambda manager: manager.filter(is_deleted=False))
+        connected = []
+
+        for quote in filter_func(Quote.all_objects.filter(lead=self)):
+            connected.append({
+                'type': 'Quote',
+                'id': quote.id,
+                'name': f"Quote #{quote.id} for {self.customer.get_full_name() if self.customer else 'Unknown'}",
+                'object': quote
+            })
+        return connected
+
     def __str__(self):
         return f"Lead: {self.customer.get_full_name() if self.customer else 'Unknown'}"
 
-class Quote(models.Model):
+class Quote(SoftDeleteModel):
     lead = models.ForeignKey(Lead, on_delete=models.CASCADE, related_name='quotes')
     scooter_model = models.ForeignKey(ScooterModel, on_delete=models.SET_NULL, null=True, blank=True)
     battery = models.ForeignKey('inventory.StockItem', on_delete=models.SET_NULL, null=True, blank=True, related_name='quoted_batteries')
@@ -32,4 +46,4 @@ class Quote(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Quote for {self.lead.customer_name}"
+        return f"Quote for {self.lead.customer.get_full_name() if self.lead and self.lead.customer else 'Unknown'}"

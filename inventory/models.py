@@ -1,6 +1,7 @@
 from django.db import models
+from core.models import SoftDeleteModel
 
-class ScooterModel(models.Model):
+class ScooterModel(SoftDeleteModel):
     name = models.CharField(max_length=100)
     range_km = models.IntegerField()
     watts = models.IntegerField()
@@ -15,10 +16,40 @@ class ScooterModel(models.Model):
     
     misc = models.JSONField(default=dict, blank=True, null=True)
 
+    def get_connected_resources(self, include_deleted=False):
+        from sales.models import SaleRecord
+        from leads.models import Quote
+
+        filter_func = (lambda manager: manager.all()) if include_deleted else (lambda manager: manager.filter(is_deleted=False))
+        connected = []
+
+        for item in filter_func(StockItem.all_objects.filter(scooter_model=self)):
+            connected.append({
+                'type': 'Stock Item',
+                'id': item.id,
+                'name': f"{item.get_item_type_display()} - {item.serial_number}",
+                'object': item
+            })
+        for sale in filter_func(SaleRecord.all_objects.filter(scooter_model=self)):
+            connected.append({
+                'type': 'Sale Record',
+                'id': sale.id,
+                'name': f"Sale INV-{sale.id}",
+                'object': sale
+            })
+        for quote in filter_func(Quote.all_objects.filter(scooter_model=self)):
+            connected.append({
+                'type': 'Quote',
+                'id': quote.id,
+                'name': f"Quote #{quote.id} for {quote.lead}",
+                'object': quote
+            })
+        return connected
+
     def __str__(self):
         return self.name
 
-class StockItem(models.Model):
+class StockItem(SoftDeleteModel):
     TYPE_CHOICES = (
         ('SCOOTER', 'Electric Scooter'),
         ('BATTERY', 'Battery'),
@@ -50,6 +81,30 @@ class StockItem(models.Model):
     wattage = models.CharField(max_length=20, choices=WATTAGE_CHOICES, null=True, blank=True)
     
     misc = models.JSONField(default=dict, blank=True, null=True)
+
+    def get_connected_resources(self, include_deleted=False):
+        from sales.models import SaleRecord
+        from leads.models import Quote
+        from django.db.models import Q
+
+        filter_func = (lambda manager: manager.all()) if include_deleted else (lambda manager: manager.filter(is_deleted=False))
+        connected = []
+
+        for sale in filter_func(SaleRecord.all_objects.filter(Q(chassis_number=self) | Q(charger=self))):
+            connected.append({
+                'type': 'Sale Record',
+                'id': sale.id,
+                'name': f"Sale INV-{sale.id}",
+                'object': sale
+            })
+        for quote in filter_func(Quote.all_objects.filter(Q(battery=self) | Q(charger=self))):
+            connected.append({
+                'type': 'Quote',
+                'id': quote.id,
+                'name': f"Quote #{quote.id} for {quote.lead}",
+                'object': quote
+            })
+        return connected
 
     def __str__(self):
         return f"{self.item_type} - {self.serial_number}"

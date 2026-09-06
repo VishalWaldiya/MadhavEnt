@@ -3,8 +3,20 @@
 <html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>{% block title %}EV Stock Manager{% endblock %}</title>
+    
+    <!-- PWA & Mobile Meta Tags -->
+    <link rel="manifest" href="{% url 'manifest' %}">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="EV Stock">
+    <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192.png">
+    <link rel="icon" type="image/svg+xml" href="/static/icons/icon-192.svg">
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -42,7 +54,8 @@
             background: var(--card-bg);
             padding: 1.5rem 0.75rem;
             border-right: 1px solid var(--border-color);
-            transition: background-color 0.3s, border-color 0.3s;
+            transition: background-color 0.3s, border-color 0.3s, transform 0.3s ease;
+            flex-shrink: 0;
         }
         .sidebar h2 {
             margin-bottom: 1.5rem;
@@ -64,23 +77,48 @@
         .sidebar a:hover {
             background: var(--border-color);
         }
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(2px);
+            z-index: 999;
+        }
+        .sidebar-overlay.active {
+            display: block;
+        }
         .main-content {
             flex: 1;
             display: flex;
             flex-direction: column;
+            min-width: 0;
             overflow-y: auto;
         }
         .top-navbar {
-            padding: 0.75rem 1.5rem;
+            padding: 0.75rem 1.25rem;
             display: flex;
             justify-content: flex-end;
             align-items: center;
-            gap: 1rem;
+            gap: 0.75rem;
             border-bottom: 1px solid var(--border-color);
             background: var(--card-bg);
+            flex-wrap: wrap;
+        }
+        .hamburger-btn {
+            display: none;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            font-size: 1.25rem;
+            padding: 0.4rem 0.75rem;
+            border-radius: 8px;
+            cursor: pointer;
+            line-height: 1;
         }
         .content-area {
-            padding: 1.5rem;
+            padding: 1.25rem;
+            flex: 1;
         }
         .card {
             background: var(--card-bg);
@@ -91,8 +129,8 @@
         }
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.25rem;
         }
         .btn {
             background: var(--primary);
@@ -104,16 +142,27 @@
             font-weight: 600;
             transition: background 0.2s;
             text-decoration: none;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            min-height: 38px;
         }
         .btn:hover { background: var(--primary-hover); }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-        .header h1 { font-size: 1.75rem; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+        .header h1 { font-size: 1.5rem; }
         
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: var(--radius);
+            margin-top: 0.75rem;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 0.75rem;
+            white-space: nowrap;
         }
         th, td {
             padding: 0.75rem;
@@ -126,64 +175,142 @@
             background: var(--bg-color);
             color: var(--text-color);
             border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.9rem;
         }
         
         .theme-toggle {
             background: transparent;
             border: 1px solid var(--border-color);
             color: var(--text-color);
-            padding: 0.5rem 1rem;
+            padding: 0.4rem 0.8rem;
             border-radius: 20px;
             cursor: pointer;
+            font-size: 0.85rem;
         }
         
         .language-dropdown {
             background: var(--bg-color);
             color: var(--text-color);
             border: 1px solid var(--border-color);
-            padding: 0.5rem;
+            padding: 0.4rem 0.6rem;
             border-radius: 8px;
+            font-size: 0.85rem;
         }
+        
+        .pwa-install-btn {
+            display: none;
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        
         @keyframes slideIn {
             from { transform: translateY(-20px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Mobile Viewport Responsiveness */
+        @media (max-width: 768px) {
+            .hamburger-btn {
+                display: inline-flex;
+            }
+            .sidebar {
+                position: fixed;
+                top: 0; left: 0; bottom: 0;
+                width: 260px;
+                z-index: 1000;
+                transform: translateX(-100%);
+                box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+                overflow-y: auto;
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .top-navbar {
+                justify-content: space-between;
+                gap: 0.5rem;
+                padding: 0.5rem 0.75rem;
+            }
+            .top-navbar form[action*="global-search"] {
+                order: 3;
+                width: 100%;
+                max-width: 100% !important;
+                margin-top: 0.5rem;
+            }
+            .content-area {
+                padding: 0.75rem;
+            }
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.75rem;
+            }
+            .header h1 {
+                font-size: 1.35rem;
+            }
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            input, select, textarea, .btn {
+                min-height: 42px;
+            }
         }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
 <body>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
     {% if request.user.is_authenticated %}
-    <div class="sidebar">
-        <h2>EV Stock Admin</h2>
-        <a href="{% url 'dashboard' %}">{% trans "Dashboard" %}</a>
+    <div class="sidebar" id="sidebar">
+        <h2>⚡ EV Stock</h2>
+        <a href="{% url 'dashboard' %}">🏠 {% trans "Dashboard" %}</a>
         
         {% if request.user.role == 'ADMIN' %}
-            <h4 style="margin: 1.5rem 0 0.5rem 1rem; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">{% trans "Admin Controls" %}</h4>
-            <a href="{% url 'inventory_list' %}">{% trans "Inventory" %}</a>
-            <a href="{% url 'sales_list' %}">{% trans "Sales Module" %}</a>
-            <a href="{% url 'gst_report' %}">{% trans "GST & Reports" %}</a>
-            <a href="{% url 'manage_staff' %}" style="color: var(--success);">{% trans "Manage Staff" %}</a>
-            <a href="{% url 'manage_customers' %}" style="color: var(--primary);">{% trans "Manage Customers" %}</a>
-            <a href="{% url 'notes_list' %}" style="color: #f59e0b;">{% trans "Shop Notepad" %}</a>
-            <a href="{% url 'template_list' %}">{% trans "Workflow Templates" %}</a>
+            <h4 style="margin: 1.25rem 0 0.4rem 0.8rem; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">{% trans "Admin Controls" %}</h4>
+            <a href="{% url 'inventory_list' %}">📦 {% trans "Inventory" %}</a>
+            <a href="{% url 'sales_list' %}">💰 {% trans "Sales Module" %}</a>
+            <a href="{% url 'gst_report' %}">📊 {% trans "GST & Reports" %}</a>
+            <a href="{% url 'manage_staff' %}" style="color: var(--success);">👥 {% trans "Manage Staff" %}</a>
+            <a href="{% url 'manage_customers' %}" style="color: var(--primary);">🤝 {% trans "Manage Customers" %}</a>
+            <a href="{% url 'notes_list' %}" style="color: #f59e0b;">📝 {% trans "Shop Notepad" %}</a>
+            <a href="{% url 'template_list' %}">📋 {% trans "Workflow Templates" %}</a>
+            <a href="{% url 'recycle_bin' %}" style="color: var(--danger); font-weight: 600;">🗑️ {% trans "Recycle Bin" %}</a>
         {% endif %}
         
-        <h4 style="margin: 1.5rem 0 0.5rem 1rem; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">{% trans "Tools" %}</h4>
-        <a href="{% url 'leads_list' %}">{% trans "Lead Generation" %}</a>
-        <a href="{% url 'search_asset' %}">{% trans "Asset Tracking" %}</a>
-        <a href="{% url 'board_view' %}" style="color: #a855f7;">{% trans "Shop Task Board" %}</a>
+        <h4 style="margin: 1.25rem 0 0.4rem 0.8rem; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">{% trans "Tools" %}</h4>
+        <a href="{% url 'leads_list' %}">🎯 {% trans "Lead Generation" %}</a>
+        <a href="{% url 'search_asset' %}">🔍 {% trans "Asset Tracking" %}</a>
+        <a href="{% url 'board_view' %}" style="color: #a855f7;">📌 {% trans "Shop Task Board" %}</a>
         
         <div style="margin-top: 2rem">
-            <a href="{% url 'logout' %}" style="color: var(--danger)">{% trans "Logout" %}</a>
+            <a href="{% url 'logout' %}" style="color: var(--danger)">🚪 {% trans "Logout" %}</a>
         </div>
     </div>
     {% endif %}
     
     <div class="main-content">
         <div class="top-navbar">
+            {% if request.user.is_authenticated %}
+            <button class="hamburger-btn" id="hamburger-btn" aria-label="Toggle Navigation">☰</button>
+            {% endif %}
+
             <form action="{% url 'global_search' %}" method="get" style="flex: 1; display: flex; max-width: 400px; margin-right: auto;">
-                <input type="text" name="q" placeholder="Search here..." required style="width: 100%; padding: 0.5rem 1.25rem; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
+                <input type="text" name="q" placeholder="Search here..." required style="width: 100%; padding: 0.4rem 1rem; border-radius: 20px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color);">
             </form>
+
+            <button id="pwa-install-btn" class="pwa-install-btn">📲 {% trans "Install App" %}</button>
+            <button class="theme-toggle" id="fullscreen-btn" title="Toggle Fullscreen">⛶ Fullscreen</button>
+
             <form action="{% url 'set_language' %}" method="post">{% csrf_token %}
                 <input name="next" type="hidden" value="{{ redirect_to }}">
                 <select name="language" onchange="this.form.submit()" class="language-dropdown">
@@ -196,14 +323,17 @@
                     {% endfor %}
                 </select>
             </form>
-            <button class="theme-toggle" id="theme-btn">🌙 Dark Mode</button>
-            <span style="font-weight: 600;">{{ request.user.username }} ({{ request.user.get_role_display }})</span>
+
+            <button class="theme-toggle" id="theme-btn">🌙 Dark</button>
+            {% if request.user.is_authenticated %}
+            <span style="font-weight: 600; font-size: 0.85rem; white-space: nowrap;">{{ request.user.username }}</span>
+            {% endif %}
         </div>
         
         <div class="content-area">
             {% if messages %}
                 {% for message in messages %}
-                    <div style="background: {% if message.tags == 'error' %}var(--danger){% else %}var(--success){% endif %}; color: white; padding: 1rem; border-radius: var(--radius); margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); animation: slideIn 0.3s ease-out;">
+                    <div style="background: {% if message.tags == 'error' %}var(--danger){% else %}var(--success){% endif %}; color: white; padding: 0.9rem 1.25rem; border-radius: var(--radius); margin-bottom: 1.25rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); animation: slideIn 0.3s ease-out; font-weight: 500;">
                         {{ message }}
                     </div>
                 {% endfor %}
@@ -213,21 +343,106 @@
     </div>
 
     <script>
+        // Theme Toggle Logic
         const themeBtn = document.getElementById('theme-btn');
         const root = document.documentElement;
         
-        // Load saved theme
         const savedTheme = localStorage.getItem('theme') || 'dark';
         root.setAttribute('data-theme', savedTheme);
-        themeBtn.innerText = savedTheme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+        themeBtn.innerText = savedTheme === 'dark' ? '☀️ Light' : '🌙 Dark';
 
         themeBtn.addEventListener('click', () => {
             const currentTheme = root.getAttribute('data-theme');
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
             root.setAttribute('data-theme', newTheme);
             localStorage.setItem('theme', newTheme);
-            themeBtn.innerText = newTheme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+            themeBtn.innerText = newTheme === 'dark' ? '☀️ Light' : '🌙 Dark';
         });
+
+        // Interactive Fullscreen API Toggle
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        if (fullscreenBtn) {
+            fullscreenBtn.addEventListener('click', () => {
+                if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                    const el = document.documentElement;
+                    if (el.requestFullscreen) {
+                        el.requestFullscreen();
+                    } else if (el.webkitRequestFullscreen) {
+                        el.webkitRequestFullscreen();
+                    }
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen();
+                    }
+                }
+            });
+
+            const updateFullscreenBtn = () => {
+                const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+                fullscreenBtn.innerText = isFS ? '🗗 Exit Fullscreen' : '⛶ Fullscreen';
+            };
+
+            document.addEventListener('fullscreenchange', updateFullscreenBtn);
+            document.addEventListener('webkitfullscreenchange', updateFullscreenBtn);
+        }
+
+        // Mobile Sidebar Drawer Toggle Logic
+        const hamburgerBtn = document.getElementById('hamburger-btn');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+
+        function toggleSidebar() {
+            if (sidebar && overlay) {
+                sidebar.classList.toggle('open');
+                overlay.classList.toggle('active');
+            }
+        }
+
+        if (hamburgerBtn) {
+            hamburgerBtn.addEventListener('click', toggleSidebar);
+        }
+        if (overlay) {
+            overlay.addEventListener('click', toggleSidebar);
+        }
+
+        // PWA Service Worker Registration & Install Prompt
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then((reg) => {
+                    console.log('PWA ServiceWorker registered with scope:', reg.scope);
+                }).catch((err) => {
+                    console.warn('PWA ServiceWorker registration failed:', err);
+                });
+            });
+        }
+
+        let deferredPrompt;
+        const installBtn = document.getElementById('pwa-install-btn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            if (installBtn) {
+                installBtn.style.display = 'inline-flex';
+            }
+        });
+
+        if (installBtn) {
+            installBtn.addEventListener('click', () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then((choiceResult) => {
+                        if (choiceResult.outcome === 'accepted') {
+                            console.log('User accepted PWA installation');
+                        }
+                        deferredPrompt = null;
+                        installBtn.style.display = 'none';
+                    });
+                }
+            });
+        }
     </script>
 </body>
 </html>

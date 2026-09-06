@@ -27,7 +27,7 @@ def add_lead(request):
         import uuid
         User = get_user_model()
         
-        customer, created = User.objects.get_or_create(
+        customer, created = User.all_objects.get_or_create(
             first_name=first_name,
             last_name=last_name,
             phone_number=phone_number,
@@ -95,4 +95,32 @@ def reject_lead(request, lead_id):
         lead.rejection_reason = reason
         lead.save()
         messages.success(request, f'Lead for {lead.customer.get_full_name()} has been rejected.')
+    return redirect('leads_list')
+
+from django.urls import reverse
+
+@login_required
+def delete_lead(request, lead_id):
+    if request.user.role != 'ADMIN':
+        messages.error(request, 'Access denied. Only administrators can delete leads.')
+        return redirect('leads_list')
+    lead = get_object_or_404(Lead, id=lead_id)
+    connected = lead.get_connected_resources(include_deleted=False)
+
+    if connected and request.POST.get('confirmed') != '1':
+        return render(request, 'core/delete_confirm.html', {
+            'item_type': 'Lead',
+            'item_title': f"Lead for {lead.customer.get_full_name() if lead.customer else 'Unknown'}",
+            'connected_items': connected,
+            'action_url': reverse('delete_lead', args=[lead.id]),
+            'cancel_url': request.META.get('HTTP_REFERER') or reverse('leads_list'),
+        })
+
+    if request.method == 'POST':
+        cust_name = lead.customer.get_full_name() if lead.customer else 'Unknown'
+        lead.delete(cascade=True)
+        msg = f'Lead for {cust_name} moved to Recycle Bin.'
+        if connected:
+            msg += f' ({len(connected)} connected resource(s) also soft-deleted).'
+        messages.success(request, msg)
     return redirect('leads_list')
