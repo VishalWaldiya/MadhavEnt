@@ -129,10 +129,11 @@ class User(AbstractUser, SoftDeleteModel):
                 'object': lead
             })
         for sale in filter_func(SaleRecord.all_objects.filter(customer=self)):
+            scooter_title = sale.primary_scooter.name if sale.primary_scooter else "EV Bill"
             connected.append({
                 'type': 'Sale Record',
                 'id': sale.id,
-                'name': f"Sale INV-{sale.id} ({sale.scooter_model.name})",
+                'name': f"Sale INV-{sale.id} ({scooter_title})",
                 'object': sale
             })
         for task in filter_func(ShopTask.all_objects.filter(assigned_to=self)):

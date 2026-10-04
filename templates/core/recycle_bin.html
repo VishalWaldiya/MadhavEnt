@@ -119,34 +119,34 @@
     </div>
     {% endif %}
 
-    {% if deleted_stock_items %}
+    {% if deleted_scooters %}
     <div class="card" style="margin-bottom: 2rem;">
-        <h2 style="color: var(--danger); margin-bottom: 1rem;">{% trans "Deleted Inventory Items" %}</h2>
-        <form id="bulk-bin-stockitem" method="post">
+        <h2 style="color: var(--danger); margin-bottom: 1rem;">{% trans "Deleted Scooters (Chassis Units)" %}</h2>
+        <form id="bulk-bin-scooter" method="post">
             {% csrf_token %}
             <div class="table-responsive">
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 40px;"><input type="checkbox" onchange="toggleSelectAll(this, 'bulk-bin-stockitem')" title="Select All"></th>
-                        <th>{% trans "Type" %}</th>
-                        <th>{% trans "Serial Number" %}</th>
-                        <th>{% trans "Name" %}</th>
+                        <th style="width: 40px;"><input type="checkbox" onchange="toggleSelectAll(this, 'bulk-bin-scooter')" title="Select All"></th>
+                        <th>{% trans "Chassis Number" %}</th>
+                        <th>{% trans "Model" %}</th>
+                        <th>{% trans "Motor Number" %}</th>
                         <th>{% trans "Deleted At" %}</th>
                         <th>{% trans "Actions" %}</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for item in deleted_stock_items %}
+                    {% for sc in deleted_scooters %}
                     <tr>
-                        <td><input type="checkbox" name="selected_ids" value="{{ item.id }}" onchange="updateBulkBar('bulk-bin-stockitem')"></td>
-                        <td>{{ item.get_item_type_display }}</td>
-                        <td style="font-family: monospace;">{{ item.serial_number }}</td>
-                        <td>{{ item.name }}</td>
-                        <td>{{ item.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
+                        <td><input type="checkbox" name="selected_ids" value="{{ sc.id }}" onchange="updateBulkBar('bulk-bin-scooter')"></td>
+                        <td style="font-family: monospace; font-weight: 600;">{{ sc.chassis_number }}</td>
+                        <td>{{ sc.scooter_model.name }}</td>
+                        <td style="font-family: monospace;">{{ sc.motor_number|default:"-" }}</td>
+                        <td>{{ sc.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
                         <td style="display: flex; gap: 0.5rem;">
-                            <a href="{% url 'restore_item' 'stockitem' item.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
-                            <form action="{% url 'hard_delete_item' 'stockitem' item.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete stock item {{ item.serial_number }}?');">
+                            <a href="{% url 'restore_item' 'scooter' sc.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
+                            <form action="{% url 'hard_delete_item' 'scooter' sc.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete scooter {{ sc.chassis_number }}?');">
                                 {% csrf_token %}
                                 <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
                             </form>
@@ -157,11 +157,158 @@
             </table>
             </div>
 
-            <div id="bulk-bar-bulk-bin-stockitem" style="display: none; background: var(--card-bg); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-                <span style="color: var(--text-color); font-weight: 500;">Selected <strong id="bulk-count-bulk-bin-stockitem" style="color: var(--primary);">0</strong> item(s)</span>
+            <div id="bulk-bar-bulk-bin-scooter" style="display: none; background: var(--card-bg); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                <span style="color: var(--text-color); font-weight: 500;">Selected <strong id="bulk-count-bulk-bin-scooter" style="color: var(--primary);">0</strong> scooter(s)</span>
                 <div style="display: flex; gap: 0.5rem;">
-                    <button type="submit" formaction="{% url 'bulk_restore' 'stockitem' %}" class="btn" style="background: var(--success); font-size: 0.85rem; padding: 0.4rem 1rem;">🔄 {% trans "Restore Selected" %}</button>
-                    <button type="submit" formaction="{% url 'bulk_hard_delete' 'stockitem' %}" class="btn" style="background: var(--danger); font-size: 0.85rem; padding: 0.4rem 1rem;" onclick="return confirm('Permanently delete selected stock item(s)? This action CANNOT be undone!');">🗑️ {% trans "Delete Permanently" %}</button>
+                    <button type="submit" formaction="{% url 'bulk_restore' 'scooter' %}" class="btn" style="background: var(--success); font-size: 0.85rem; padding: 0.4rem 1rem;">🔄 {% trans "Restore Selected" %}</button>
+                    <button type="submit" formaction="{% url 'bulk_hard_delete' 'scooter' %}" class="btn" style="background: var(--danger); font-size: 0.85rem; padding: 0.4rem 1rem;" onclick="return confirm('Permanently delete selected scooter(s)?');">🗑️ {% trans "Delete Permanently" %}</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    {% if deleted_batteries %}
+    <div class="card" style="margin-bottom: 2rem;">
+        <h2 style="color: var(--danger); margin-bottom: 1rem;">{% trans "Deleted Batteries" %}</h2>
+        <form id="bulk-bin-battery" method="post">
+            {% csrf_token %}
+            <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" onchange="toggleSelectAll(this, 'bulk-bin-battery')" title="Select All"></th>
+                        <th>{% trans "Serial Number" %}</th>
+                        <th>{% trans "Name" %}</th>
+                        <th>{% trans "Type" %}</th>
+                        <th>{% trans "Deleted At" %}</th>
+                        <th>{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in deleted_batteries %}
+                    <tr>
+                        <td><input type="checkbox" name="selected_ids" value="{{ b.id }}" onchange="updateBulkBar('bulk-bin-battery')"></td>
+                        <td style="font-family: monospace; font-weight: 600;">{{ b.serial_number }}</td>
+                        <td>{{ b.name }}</td>
+                        <td>{{ b.get_battery_type_display }} ({{ b.voltage }})</td>
+                        <td>{{ b.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
+                        <td style="display: flex; gap: 0.5rem;">
+                            <a href="{% url 'restore_item' 'battery' b.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
+                            <form action="{% url 'hard_delete_item' 'battery' b.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete battery {{ b.serial_number }}?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+
+            <div id="bulk-bar-bulk-bin-battery" style="display: none; background: var(--card-bg); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem; align-items: center; justify-content: space-between;">
+                <span style="color: var(--text-color); font-weight: 500;">Selected <strong id="bulk-count-bulk-bin-battery" style="color: var(--primary);">0</strong> battery/batteries</span>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="submit" formaction="{% url 'bulk_restore' 'battery' %}" class="btn" style="background: var(--success); font-size: 0.85rem; padding: 0.4rem 1rem;">🔄 {% trans "Restore Selected" %}</button>
+                    <button type="submit" formaction="{% url 'bulk_hard_delete' 'battery' %}" class="btn" style="background: var(--danger); font-size: 0.85rem; padding: 0.4rem 1rem;" onclick="return confirm('Permanently delete selected battery/batteries?');">🗑️ {% trans "Delete Permanently" %}</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    {% if deleted_chargers %}
+    <div class="card" style="margin-bottom: 2rem;">
+        <h2 style="color: var(--danger); margin-bottom: 1rem;">{% trans "Deleted Chargers" %}</h2>
+        <form id="bulk-bin-charger" method="post">
+            {% csrf_token %}
+            <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" onchange="toggleSelectAll(this, 'bulk-bin-charger')" title="Select All"></th>
+                        <th>{% trans "Serial Number" %}</th>
+                        <th>{% trans "Name" %}</th>
+                        <th>{% trans "Voltage" %}</th>
+                        <th>{% trans "Deleted At" %}</th>
+                        <th>{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in deleted_chargers %}
+                    <tr>
+                        <td><input type="checkbox" name="selected_ids" value="{{ c.id }}" onchange="updateBulkBar('bulk-bin-charger')"></td>
+                        <td style="font-family: monospace; font-weight: 600;">{{ c.serial_number }}</td>
+                        <td>{{ c.name }}</td>
+                        <td>{{ c.voltage }}</td>
+                        <td>{{ c.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
+                        <td style="display: flex; gap: 0.5rem;">
+                            <a href="{% url 'restore_item' 'charger' c.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
+                            <form action="{% url 'hard_delete_item' 'charger' c.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete charger {{ c.serial_number }}?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+
+            <div id="bulk-bar-bulk-bin-charger" style="display: none; background: var(--card-bg); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem; align-items: center; justify-content: space-between;">
+                <span style="color: var(--text-color); font-weight: 500;">Selected <strong id="bulk-count-bulk-bin-charger" style="color: var(--primary);">0</strong> charger(s)</span>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="submit" formaction="{% url 'bulk_restore' 'charger' %}" class="btn" style="background: var(--success); font-size: 0.85rem; padding: 0.4rem 1rem;">🔄 {% trans "Restore Selected" %}</button>
+                    <button type="submit" formaction="{% url 'bulk_hard_delete' 'charger' %}" class="btn" style="background: var(--danger); font-size: 0.85rem; padding: 0.4rem 1rem;" onclick="return confirm('Permanently delete selected charger(s)?');">🗑️ {% trans "Delete Permanently" %}</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    {% if deleted_spare_parts %}
+    <div class="card" style="margin-bottom: 2rem;">
+        <h2 style="color: var(--danger); margin-bottom: 1rem;">{% trans "Deleted Spare Parts" %}</h2>
+        <form id="bulk-bin-sparepart" method="post">
+            {% csrf_token %}
+            <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" onchange="toggleSelectAll(this, 'bulk-bin-sparepart')" title="Select All"></th>
+                        <th>{% trans "Part Number" %}</th>
+                        <th>{% trans "Name" %}</th>
+                        <th>{% trans "Category" %}</th>
+                        <th>{% trans "Deleted At" %}</th>
+                        <th>{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sp in deleted_spare_parts %}
+                    <tr>
+                        <td><input type="checkbox" name="selected_ids" value="{{ sp.id }}" onchange="updateBulkBar('bulk-bin-sparepart')"></td>
+                        <td style="font-family: monospace; font-weight: 600;">{{ sp.part_number }}</td>
+                        <td>{{ sp.name }}</td>
+                        <td>{{ sp.category }}</td>
+                        <td>{{ sp.deleted_at|date:"M d, Y H:i"|default:"-" }}</td>
+                        <td style="display: flex; gap: 0.5rem;">
+                            <a href="{% url 'restore_item' 'sparepart' sp.id %}" class="btn" style="background: var(--success); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Restore" %}</a>
+                            <form action="{% url 'hard_delete_item' 'sparepart' sp.id %}" method="post" style="margin:0;" onsubmit="return confirm('Permanently delete spare part {{ sp.name }}?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn" style="background: var(--danger); padding: 0.3rem 0.75rem; font-size: 0.8rem;">{% trans "Delete Permanently" %}</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+
+            <div id="bulk-bar-bulk-bin-sparepart" style="display: none; background: var(--card-bg); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem; align-items: center; justify-content: space-between;">
+                <span style="color: var(--text-color); font-weight: 500;">Selected <strong id="bulk-count-bulk-bin-sparepart" style="color: var(--primary);">0</strong> spare part(s)</span>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="submit" formaction="{% url 'bulk_restore' 'sparepart' %}" class="btn" style="background: var(--success); font-size: 0.85rem; padding: 0.4rem 1rem;">🔄 {% trans "Restore Selected" %}</button>
+                    <button type="submit" formaction="{% url 'bulk_hard_delete' 'sparepart' %}" class="btn" style="background: var(--danger); font-size: 0.85rem; padding: 0.4rem 1rem;" onclick="return confirm('Permanently delete selected spare part(s)?');">🗑️ {% trans "Delete Permanently" %}</button>
                 </div>
             </div>
         </form>

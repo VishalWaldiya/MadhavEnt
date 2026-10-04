@@ -2,56 +2,353 @@
 
 {% block title %}Generate Quote - EV Stock Manager{% endblock %}
 
+{% block extra_head %}
+<style>
+.section-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #38bdf8;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.item-row {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 0.85rem;
+    margin-bottom: 0.75rem;
+    display: grid;
+    gap: 0.75rem;
+    align-items: center;
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="card" style="max-width: 600px; margin: 0 auto;">
-    <div class="header">
-        <h1>Generate Quote for {{ lead.customer_name }}</h1>
-    </div>
-    <form method="post" action="{% url 'add_quote' lead.id %}">
-        {% csrf_token %}
-        <div style="margin-bottom: 1rem;">
-            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Scooter Model (Optional)</label>
-            <select name="scooter_model" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
-                <option value="">-- Select Model --</option>
-                {% for model in scooters %}
-                <option value="{{ model.id }}">{{ model.name }} (Last Price: ₹{{ model.last_price }})</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div style="margin-bottom: 1rem;">
-            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Battery (Optional)</label>
-            <select name="battery" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
-                <option value="">-- Select Battery --</option>
-                {% for b in batteries %}
-                <option value="{{ b.id }}">{{ b.name }} ({{ b.serial_number }})</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div style="margin-bottom: 1rem;">
-            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Charger (Optional)</label>
-            <select name="charger" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
-                <option value="">-- Select Charger --</option>
-                {% for c in chargers %}
-                <option value="{{ c.id }}">{{ c.name }} ({{ c.serial_number }})</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div style="margin-bottom: 1rem;">
-            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Item/Accessory Details (If not a standard item)</label>
-            <textarea name="item_details" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; resize: vertical; min-height: 80px;"></textarea>
-        </div>
-        <div style="margin-bottom: 1rem;">
-            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Quoted Price (₹)</label>
-            <input type="number" step="0.01" name="quoted_price" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
-        </div>
-        <div style="margin-bottom: 1.5rem;">
-            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Quote Valid Until</label>
-            <input type="date" name="valid_until" required style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
-        </div>
+<div style="max-width: 900px; margin: 0 auto 3rem auto;">
+    <div class="header" style="margin-bottom: 1.5rem;">
         <div>
-            <a href="{% url 'leads_list' %}" class="btn" style="background: transparent; border: 1px solid var(--text-muted); color: var(--text-muted); margin-right: 1rem;">Cancel</a>
-            <button type="submit" class="btn">Generate Quote</button>
+            <h1 style="margin: 0; font-size: 1.7rem; color: #38bdf8; display: flex; align-items: center; gap: 0.5rem;">
+                <span>📋</span> Generate Customer Quotation
+            </h1>
+            <p style="color: var(--text-muted); margin: 0.25rem 0 0;">
+                For Lead: <strong>{{ lead.customer.get_full_name|default:lead.customer.username }}</strong> ({{ lead.customer.phone_number }})
+            </p>
+        </div>
+    </div>
+
+    <form method="post" action="{% url 'add_quote' lead.id %}" onsubmit="return validateQuoteSubmission();">
+        {% csrf_token %}
+        <input type="hidden" name="subtotal_amount" id="q_subtotal_hidden" value="0.00">
+        <input type="hidden" name="discount_amount" id="q_discount_amt_hidden" value="0.00">
+        <input type="hidden" name="discount_percentage" id="q_discount_pct_hidden" value="0.00">
+        <input type="hidden" name="quoted_price" id="q_quoted_price_hidden" value="0.00">
+
+        <!-- 1. Scooter Selection -->
+        <div class="section-card">
+            <div class="section-title"><span>🛵</span> 1. Scooter Model</div>
+            <div class="grid" style="grid-template-columns: 2fr 1fr 1fr; gap: 1rem;">
+                <div>
+                    <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Scooter Model</label>
+                    <select id="q_scooter_select" onchange="onQuoteScooterChange()" style="width: 100%; padding: 0.7rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                        <option value="">-- No Scooter (Parts / Battery Only) --</option>
+                        {% for m in scooters %}
+                        <option value="{{ m.id }}" data-name="{{ m.name }}" data-price="{{ m.selling_price }}" data-range="{{ m.default_range_km }}">
+                            {{ m.name }} (₹{{ m.selling_price }} - Base Range: {{ m.default_range_km }}km)
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Qty</label>
+                    <input type="number" id="q_scooter_qty" value="1" min="1" oninput="recalculateQuote()" style="width: 100%; padding: 0.7rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; text-align: center;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Price (₹)</label>
+                    <input type="number" step="0.01" id="q_scooter_price" oninput="recalculateQuote()" placeholder="₹0.00" style="width: 100%; padding: 0.7rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #38bdf8; font-weight: 600;">
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Additional Items (Battery, Charger, Spares) -->
+        <div class="section-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <div class="section-title" style="margin: 0;"><span>📦</span> 2. Batteries, Chargers & Spare Parts</div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="button" class="btn" style="background: #059669; font-size: 0.8rem; padding: 0.35rem 0.75rem;" onclick="addQuoteItem('BATTERY')">+ Add Battery</button>
+                    <button type="button" class="btn" style="background: #7c3aed; font-size: 0.8rem; padding: 0.35rem 0.75rem;" onclick="addQuoteItem('CHARGER')">+ Add Charger</button>
+                    <button type="button" class="btn" style="background: #d97706; font-size: 0.8rem; padding: 0.35rem 0.75rem;" onclick="addQuoteItem('SPARE')">+ Add Spare Part</button>
+                </div>
+            </div>
+
+            <div id="quote-items-container">
+                <!-- Dynamically added items -->
+            </div>
+        </div>
+
+        <!-- 3. Pricing & Auto-Calculated Discount -->
+        <div class="section-card" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
+            <div class="section-title"><span>💰</span> 3. Discount & Final Quoted Price</div>
+
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 2rem;">
+                <div>
+                    <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Discount Description / Reason</label>
+                    <input type="text" name="discount_reason" id="q_discount_reason" value="First-time Buyer Welcome Discount" style="width: 100%; padding: 0.7rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+
+                    <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                        <div>
+                            <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Discount %</label>
+                            <input type="number" step="0.1" id="q_discount_pct_input" oninput="onQuoteDiscountPctChange()" placeholder="0.0%" style="width: 100%; padding: 0.7rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fbbf24; font-weight: 600;">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Discount (₹)</label>
+                            <input type="number" step="0.01" id="q_discount_amt_input" oninput="onQuoteDiscountAmtChange()" placeholder="₹0.00" style="width: 100%; padding: 0.7rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fbbf24; font-weight: 600;">
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: 8px; border: 1px solid #334155;">
+                    <div style="display: flex; justify-content: space-between; padding: 0.4rem 0;">
+                        <span style="color: var(--text-muted);">Items Subtotal:</span>
+                        <span id="q_subtotal_disp" style="font-weight: 600; color: white;">₹0.00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; color: #fbbf24;">
+                        <span>Discount:</span>
+                        <span id="q_discount_disp" style="font-weight: 600;">-₹0.00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-top: 1px solid #334155; margin-top: 0.5rem;">
+                        <span style="font-size: 1.1rem; font-weight: bold; color: #38bdf8;">Final Quoted Price:</span>
+                        <div style="display: flex; align-items: center; gap: 0.4rem;">
+                            <span style="color: #38bdf8; font-weight: bold;">₹</span>
+                            <input type="number" step="0.01" id="q_final_price_input" oninput="onQuoteFinalPriceChange()" style="width: 150px; padding: 0.6rem; border-radius: 8px; border: 2px solid #38bdf8; background: #0f172a; color: #38bdf8; font-size: 1.1rem; font-weight: bold; text-align: right;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Notes & Validity -->
+        <div class="section-card">
+            <div class="grid" style="grid-template-columns: 2fr 1fr; gap: 1rem;">
+                <div>
+                    <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Additional Inclusions / Special Notes</label>
+                    <input type="text" name="item_details" placeholder="e.g. Free helmet included + 1 year free roadside assistance..." style="width: 100%; padding: 0.7rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Quote Valid Until *</label>
+                    <input type="date" name="valid_until" required id="quote_valid_until" style="width: 100%; padding: 0.7rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                </div>
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+            <a href="{% url 'leads_list' %}" class="btn" style="background: transparent; border: 1px solid #64748b; color: #94a3b8;">Cancel</a>
+            <button type="submit" class="btn" style="background: #10b981; padding: 0.75rem 2rem; font-size: 1rem;">Generate Official Quote</button>
         </div>
     </form>
 </div>
+
+<script>
+// Default valid date = 14 days from today
+const d = new Date();
+d.setDate(d.getDate() + 14);
+document.getElementById('quote_valid_until').value = d.toISOString().split('T')[0];
+
+const Q_BATTERIES = [
+    {% for b in batteries %}
+    { name: "{{ b.name|escapejs }} ({{ b.voltage }})", pw: parseFloat("{{ b.price_with_scooter }}"), pwo: parseFloat("{{ b.price_without_scooter }}") },
+    {% endfor %}
+];
+const Q_CHARGERS = [
+    {% for c in chargers %}
+    { name: "{{ c.name|escapejs }}", pw: parseFloat("{{ c.price_with_scooter }}"), pwo: parseFloat("{{ c.price_without_scooter }}") },
+    {% endfor %}
+];
+const Q_SPARES = [
+    {% for s in spare_parts %}
+    { name: "{{ s.name|escapejs }}", price: parseFloat("{{ s.selling_price }}") },
+    {% endfor %}
+];
+
+function onQuoteScooterChange() {
+    const sel = document.getElementById('q_scooter_select');
+    const opt = sel.options[sel.selectedIndex];
+    if (opt && opt.value) {
+        document.getElementById('q_scooter_price').value = parseFloat(opt.dataset.price || 0).toFixed(2);
+    } else {
+        document.getElementById('q_scooter_price').value = '';
+    }
+    recalculateQuote();
+}
+
+let qItemIndex = 0;
+function addQuoteItem(type) {
+    qItemIndex++;
+    const container = document.getElementById('quote-items-container');
+    const div = document.createElement('div');
+    div.className = 'item-row q-item-row';
+    div.id = `q_row_${qItemIndex}`;
+    div.style.gridTemplateColumns = '2.5fr 1.5fr 1fr 1.2fr 40px';
+
+    let defaultName = '';
+    let defaultPrice = '0.00';
+    let catSelect = '';
+
+    if (type === 'BATTERY') {
+        defaultName = Q_BATTERIES.length ? Q_BATTERIES[0].name : 'Lithium 60V Battery';
+        defaultPrice = Q_BATTERIES.length ? Q_BATTERIES[0].pw.toFixed(2) : '21000.00';
+        catSelect = `
+            <select name="item_category" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: white;">
+                <option value="WITH_SCOOTER">With Scooter</option>
+                <option value="WITHOUT_SCOOTER">Without Scooter</option>
+            </select>
+        `;
+    } else if (type === 'CHARGER') {
+        defaultName = Q_CHARGERS.length ? Q_CHARGERS[0].name : 'Fast Charger';
+        defaultPrice = '0.00'; // 1st free
+        catSelect = `
+            <select name="item_category" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: white;">
+                <option value="WITH_SCOOTER">With Scooter (Free)</option>
+                <option value="WITHOUT_SCOOTER">Without Scooter</option>
+            </select>
+        `;
+    } else {
+        defaultName = Q_SPARES.length ? Q_SPARES[0].name : 'Accessory / Spare';
+        defaultPrice = Q_SPARES.length ? Q_SPARES[0].price.toFixed(2) : '450.00';
+        catSelect = `<div style="color: #94a3b8; font-size: 0.8rem; padding: 0.6rem;">Spare / Accessory</div><input type="hidden" name="item_category" value="WITHOUT_SCOOTER">`;
+    }
+
+    div.innerHTML = `
+        <div>
+            <input type="hidden" name="item_type" value="${type}">
+            <input type="text" name="item_name" value="${defaultName}" required placeholder="Item description" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: white;">
+        </div>
+        <div>${catSelect}</div>
+        <div>
+            <input type="number" min="1" name="item_quantity" value="1" oninput="recalculateQuote()" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: white; text-align: center;">
+        </div>
+        <div>
+            <input type="number" step="0.01" name="item_unit_price" value="${defaultPrice}" oninput="recalculateQuote()" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: #38bdf8; font-weight: 600;">
+        </div>
+        <div>
+            <button type="button" onclick="document.getElementById('q_row_${qItemIndex}').remove(); recalculateQuote();" style="background: none; border: none; color: #f43f5e; font-size: 1.2rem; cursor: pointer;">&times;</button>
+        </div>
+    `;
+    container.appendChild(div);
+    recalculateQuote();
+}
+
+let isQuoteUpdating = false;
+
+function recalculateQuote() {
+    if (isQuoteUpdating) return;
+    let subtotal = 0;
+
+    // Scooter
+    const scPrice = parseFloat(document.getElementById('q_scooter_price').value) || 0;
+    const scQty = parseInt(document.getElementById('q_scooter_qty').value) || 1;
+    subtotal += (scPrice * scQty);
+
+    // Items
+    document.querySelectorAll('.q-item-row').forEach(row => {
+        const qty = parseInt(row.querySelector('[name="item_quantity"]').value) || 1;
+        const price = parseFloat(row.querySelector('[name="item_unit_price"]').value) || 0;
+        subtotal += (qty * price);
+    });
+
+    const discPct = parseFloat(document.getElementById('q_discount_pct_input').value) || 0;
+    const discAmt = (subtotal * discPct / 100);
+    const finalPrice = Math.max(0, subtotal - discAmt);
+
+    document.getElementById('q_subtotal_disp').innerText = `₹${subtotal.toFixed(2)}`;
+    document.getElementById('q_discount_disp').innerText = `-₹${discAmt.toFixed(2)} (${discPct.toFixed(1)}%)`;
+    document.getElementById('q_discount_amt_input').value = discAmt > 0 ? discAmt.toFixed(2) : '';
+    document.getElementById('q_final_price_input').value = finalPrice.toFixed(2);
+
+    document.getElementById('q_subtotal_hidden').value = subtotal.toFixed(2);
+    document.getElementById('q_discount_amt_hidden').value = discAmt.toFixed(2);
+    document.getElementById('q_discount_pct_hidden').value = discPct.toFixed(2);
+    document.getElementById('q_quoted_price_hidden').value = finalPrice.toFixed(2);
+}
+
+function onQuoteFinalPriceChange() {
+    isQuoteUpdating = true;
+    const subtotal = parseFloat(document.getElementById('q_subtotal_hidden').value) || 0;
+    const target = parseFloat(document.getElementById('q_final_price_input').value) || 0;
+
+    if (subtotal > 0 && target < subtotal) {
+        const diff = subtotal - target;
+        const pct = (diff / subtotal) * 100;
+        document.getElementById('q_discount_amt_input').value = diff.toFixed(2);
+        document.getElementById('q_discount_pct_input').value = pct.toFixed(1);
+        document.getElementById('q_discount_disp').innerText = `-₹${diff.toFixed(2)} (${pct.toFixed(1)}%)`;
+        document.getElementById('q_discount_amt_hidden').value = diff.toFixed(2);
+        document.getElementById('q_discount_pct_hidden').value = pct.toFixed(2);
+    } else {
+        document.getElementById('q_discount_amt_input').value = '0.00';
+        document.getElementById('q_discount_pct_input').value = '0.0';
+        document.getElementById('q_discount_disp').innerText = `-₹0.00 (0%)`;
+        document.getElementById('q_discount_amt_hidden').value = '0.00';
+        document.getElementById('q_discount_pct_hidden').value = '0.00';
+    }
+    document.getElementById('q_quoted_price_hidden').value = target.toFixed(2);
+    isQuoteUpdating = false;
+}
+
+function onQuoteDiscountPctChange() {
+    isQuoteUpdating = true;
+    const subtotal = parseFloat(document.getElementById('q_subtotal_hidden').value) || 0;
+    const pct = parseFloat(document.getElementById('q_discount_pct_input').value) || 0;
+    const amt = (subtotal * pct / 100);
+    const finalPrice = Math.max(0, subtotal - amt);
+
+    document.getElementById('q_discount_amt_input').value = amt > 0 ? amt.toFixed(2) : '';
+    document.getElementById('q_final_price_input').value = finalPrice.toFixed(2);
+    document.getElementById('q_discount_disp').innerText = `-₹${amt.toFixed(2)} (${pct.toFixed(1)}%)`;
+
+    document.getElementById('q_discount_amt_hidden').value = amt.toFixed(2);
+    document.getElementById('q_discount_pct_hidden').value = pct.toFixed(2);
+    document.getElementById('q_quoted_price_hidden').value = finalPrice.toFixed(2);
+    isQuoteUpdating = false;
+}
+
+function onQuoteDiscountAmtChange() {
+    isQuoteUpdating = true;
+    const subtotal = parseFloat(document.getElementById('q_subtotal_hidden').value) || 0;
+    const amt = parseFloat(document.getElementById('q_discount_amt_input').value) || 0;
+    const pct = subtotal > 0 ? (amt / subtotal) * 100 : 0;
+    const finalPrice = Math.max(0, subtotal - amt);
+
+    document.getElementById('q_discount_pct_input').value = pct.toFixed(1);
+    document.getElementById('q_final_price_input').value = finalPrice.toFixed(2);
+    document.getElementById('q_discount_disp').innerText = `-₹${amt.toFixed(2)} (${pct.toFixed(1)}%)`;
+
+    document.getElementById('q_discount_amt_hidden').value = amt.toFixed(2);
+    document.getElementById('q_discount_pct_hidden').value = pct.toFixed(2);
+    document.getElementById('q_quoted_price_hidden').value = finalPrice.toFixed(2);
+    isQuoteUpdating = false;
+}
+
+function validateQuoteSubmission() {
+    const total = parseFloat(document.getElementById('q_quoted_price_hidden').value) || 0;
+    if (total <= 0) {
+        alert("Please enter a valid quoted price or add items to the quotation.");
+        return false;
+    }
+    return true;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    recalculateQuote();
+});
+</script>
 {% endblock %}

@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Lead #{{ lead.id }} - EV Stock Manager{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 750px; margin: 0 auto;">
+    <div class="header" style="border-bottom: 1px solid #334155; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1 style="margin: 0; font-size: 1.5rem; color: #38bdf8; display: flex; align-items: center; gap: 0.5rem;">
+                <span>✏️</span> Edit Lead #{{ lead.id }}
+            </h1>
+            <a href="{% url 'lead_detail' lead.id %}" style="color: #94a3b8; font-size: 0.85rem; text-decoration: none;">← Back to Lead Details</a>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0.25rem 0 0;">
+            Update customer contact, assignment, status, and requirements. All modifications are automatically tracked in the lead history timeline.
+        </p>
+    </div>
+
+    <form method="post" action="{% url 'edit_lead' lead.id %}" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- Customer Identity Section -->
+        <h3 style="font-size: 1rem; color: #38bdf8; margin: 0 0 1rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span>👤</span> Customer Details
+        </h3>
+
+        <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">First Name *</label>
+                <input type="text" name="first_name" required value="{{ lead.customer.first_name }}" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Last Name</label>
+                <input type="text" name="last_name" value="{{ lead.customer.last_name|default:'' }}" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            </div>
+        </div>
+
+        <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Phone Number *</label>
+                <input type="text" name="phone_number" required value="{{ lead.customer.phone_number }}" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Assigned Salesperson</label>
+                <select name="salesperson" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                    <option value="">-- Unassigned --</option>
+                    {% for sp in sales_users %}
+                    <option value="{{ sp.id }}" {% if lead.salesperson.id == sp.id %}selected{% endif %}>
+                        {{ sp.get_full_name|default:sp.username }} ({{ sp.role }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Aadhar Card Number</label>
+                <input type="text" name="aadhar_number" value="{{ lead.customer.aadhar_number|default:'' }}" placeholder="12-digit UIDAI number" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-family: monospace;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">PAN Card Number</label>
+                <input type="text" name="pan_number" value="{{ lead.customer.pan_number|default:'' }}" placeholder="10-digit PAN" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-family: monospace;">
+            </div>
+        </div>
+
+        <!-- Document Attachments -->
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+            <h4 style="margin: 0 0 0.75rem; font-size: 0.85rem; color: #94a3b8; text-transform: uppercase;">KYC Document Uploads</h4>
+            <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                <div>
+                    <label style="display: block; margin-bottom: 0.35rem; color: var(--text-muted); font-size: 0.75rem;">Aadhar Front</label>
+                    <input type="file" name="aadhar_front_photo" accept="image/*" style="font-size: 0.8rem; color: #cbd5e1;">
+                    {% if lead.customer.aadhar_front_photo %}
+                    <span style="font-size: 0.7rem; color: #34d399; display: block; margin-top: 0.2rem;">✓ Document uploaded</span>
+                    {% endif %}
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.35rem; color: var(--text-muted); font-size: 0.75rem;">Aadhar Back</label>
+                    <input type="file" name="aadhar_back_photo" accept="image/*" style="font-size: 0.8rem; color: #cbd5e1;">
+                    {% if lead.customer.aadhar_back_photo %}
+                    <span style="font-size: 0.7rem; color: #34d399; display: block; margin-top: 0.2rem;">✓ Document uploaded</span>
+                    {% endif %}
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.35rem; color: var(--text-muted); font-size: 0.75rem;">PAN Card</label>
+                    <input type="file" name="pan_photo" accept="image/*" style="font-size: 0.8rem; color: #cbd5e1;">
+                    {% if lead.customer.pan_photo %}
+                    <span style="font-size: 0.7rem; color: #34d399; display: block; margin-top: 0.2rem;">✓ Document uploaded</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Lead Pipeline Status & Requirements -->
+        <h3 style="font-size: 1rem; color: #fbbf24; margin: 0 0 1rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span>⚡</span> Pipeline Status & Requirements
+        </h3>
+
+        <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Lead Status *</label>
+                <select name="status" id="lead_status_select" onchange="toggleRejectionReason(this.value)" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                    <option value="NEW" {% if lead.status == 'NEW' %}selected{% endif %}>NEW</option>
+                    <option value="IN_PROGRESS" {% if lead.status == 'IN_PROGRESS' %}selected{% endif %}>IN PROGRESS</option>
+                    <option value="CONVERTED" {% if lead.status == 'CONVERTED' %}selected{% endif %}>CONVERTED (Won)</option>
+                    <option value="LOST" {% if lead.status == 'LOST' %}selected{% endif %}>LOST</option>
+                    <option value="REJECTED" {% if lead.status == 'REJECTED' %}selected{% endif %}>REJECTED</option>
+                </select>
+            </div>
+            <div id="rejection_reason_field" style="display: {% if lead.status == 'REJECTED' or lead.status == 'LOST' %}block{% else %}none{% endif %};">
+                <label style="display: block; margin-bottom: 0.4rem; color: #fb7185; font-size: 0.85rem;">Rejection / Lost Reason</label>
+                <input type="text" name="rejection_reason" value="{{ lead.rejection_reason|default:'' }}" placeholder="High price, bought rival brand, etc." style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            </div>
+        </div>
+
+        <div style="margin-bottom: 1.25rem;">
+            <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Interested Items / Requirements</label>
+            <textarea name="interested_items" rows="3" placeholder="Model interest, battery preference, accessories..." style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; resize: vertical;">{{ lead.interested_items }}</textarea>
+        </div>
+
+        <!-- History Note Section -->
+        <div style="background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.4rem; color: #38bdf8; font-size: 0.85rem; font-weight: 600;">
+                📝 Action Note / Reason for Update (Recorded to History Timeline)
+            </label>
+            <textarea name="edit_notes" rows="2" placeholder="e.g. Customer requested quote follow-up on Saturday; verified Aadhar details..." style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; resize: vertical;"></textarea>
+            <span style="font-size: 0.75rem; color: #94a3b8; display: block; margin-top: 0.35rem;">
+                ℹ️ This note will appear with your username and timestamp on the lead's chronological activity timeline.
+            </span>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+            <a href="{% url 'lead_detail' lead.id %}" class="btn" style="background: transparent; border: 1px solid #64748b; color: #94a3b8;">Cancel</a>
+            <button type="submit" class="btn" style="background: #0284c7;">Save Changes & Update Timeline</button>
+        </div>
+    </form>
+</div>
+
+<script>
+function toggleRejectionReason(val) {
+    const f = document.getElementById('rejection_reason_field');
+    if (val === 'REJECTED' || val === 'LOST') {
+        f.style.display = 'block';
+    } else {
+        f.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

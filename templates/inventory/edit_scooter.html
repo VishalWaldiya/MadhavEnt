@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Scooter - EV Stock Manager{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+    <div class="header" style="border-bottom: 1px solid #334155; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1 style="margin: 0; font-size: 1.5rem; color: #38bdf8; display: flex; align-items: center; gap: 0.5rem;">
+                <span>✏️</span> Edit Scooter Unit
+            </h1>
+            <span style="font-size: 0.75rem; background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 0.2rem 0.6rem; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.3);">
+                Admin Only
+            </span>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0.25rem 0 0;">
+            Update chassis/motor numbers, prices, or status for <strong>{{ scooter.chassis_number }}</strong>.
+        </p>
+    </div>
+
+    <form method="post" action="{% url 'edit_scooter' scooter.id %}">
+        {% csrf_token %}
+        <div style="margin-bottom: 1.25rem;">
+            <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Scooter Model *</label>
+            <select name="scooter_model" id="scooter_model_select" required onchange="onModelSelect(this)" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                {% for m in models %}
+                <option value="{{ m.id }}" data-cost="{{ m.cost_price }}" data-sell="{{ m.selling_price }}" {% if scooter.scooter_model.id == m.id %}selected{% endif %}>
+                    {{ m.name }} (Base: ₹{{ m.selling_price }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="margin-bottom: 1.25rem;">
+            <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Chassis Number (VIN) *</label>
+            <input type="text" name="chassis_number" required value="{{ scooter.chassis_number }}" placeholder="e.g. CH-ECO-9842" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-family: monospace;">
+        </div>
+
+        <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Motor Number</label>
+                <input type="text" name="motor_number" value="{{ scooter.motor_number|default:'' }}" placeholder="e.g. MOT-5521" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-family: monospace;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Color / Finish</label>
+                <input type="text" name="color" value="{{ scooter.color }}" placeholder="e.g. Pearl White" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            </div>
+        </div>
+
+        <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Unit Cost Price (₹)</label>
+                <input type="number" step="0.01" name="cost_price" id="cost_price_input" value="{{ scooter.cost_price|default:'0.00' }}" placeholder="48000.00" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Selling Price (₹)</label>
+                <input type="number" step="0.01" name="selling_price" id="selling_price_input" value="{{ scooter.selling_price|default:'0.00' }}" placeholder="64999.00" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #38bdf8; font-weight: 600;">
+            </div>
+        </div>
+
+        <div style="margin-bottom: 1.25rem;">
+            <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Status</label>
+            <select name="status" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                <option value="AVAILABLE" {% if scooter.status == 'AVAILABLE' %}selected{% endif %}>AVAILABLE</option>
+                <option value="SOLD" {% if scooter.status == 'SOLD' %}selected{% endif %}>SOLD</option>
+                <option value="DEFECTIVE" {% if scooter.status == 'DEFECTIVE' %}selected{% endif %}>DEFECTIVE</option>
+            </select>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Supplier / Batch Information</label>
+            <textarea name="supplier_details" rows="2" placeholder="OEM batch no., invoice ref, delivery date..." style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">{{ scooter.supplier_details|default:'' }}</textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+            <a href="{% url 'inventory_list' %}?tab=scooters" class="btn" style="background: transparent; border: 1px solid #64748b; color: #94a3b8;">Cancel</a>
+            <button type="submit" class="btn" style="background: #0284c7;">Update Scooter</button>
+        </div>
+    </form>
+</div>
+
+<script>
+function onModelSelect(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    if (opt && opt.value) {
+        if (opt.dataset.cost) document.getElementById('cost_price_input').value = opt.dataset.cost;
+        if (opt.dataset.sell) document.getElementById('selling_price_input').value = opt.dataset.sell;
+    }
+}
+</script>
+{% endblock %}

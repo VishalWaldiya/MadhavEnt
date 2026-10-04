@@ -18,7 +18,7 @@
 {% else %}
 
     <!-- Check if ANY results exist -->
-    {% if not results.sales and not results.leads and not results.inventory_items and not results.tasks and not results.notes and not results.templates and not results.customers %}
+    {% if not results.sales and not results.leads and not results.scooters and not results.batteries and not results.chargers and not results.spare_parts and not results.tasks and not results.notes and not results.templates and not results.customers %}
     <div class="card" style="text-align: center; padding: 3rem;">
         <p style="color: var(--danger);">No results found for "{{ query }}".</p>
     </div>
@@ -86,6 +86,7 @@
                     <th>Invoice</th>
                     <th>Customer Name</th>
                     <th>Contact</th>
+                    <th>Vehicle Model</th>
                     <th>Chassis</th>
                     <th>Status</th>
                     <th>Action</th>
@@ -102,7 +103,20 @@
                     </td>
                     <td style="font-weight: 600;">{{ sale.customer.get_full_name|default:"Unknown" }}</td>
                     <td>{{ sale.customer.phone_number }}</td>
-                    <td>{{ sale.chassis_number.serial_number }}</td>
+                    <td>
+                        {% if sale.scooter_items.all %}
+                            {% for s in sale.scooter_items.all %}{{ s.scooter_model.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td style="font-family: monospace;">
+                        {% if sale.scooter_items.all %}
+                            {% for s in sale.scooter_items.all %}{{ s.chassis_number }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
                     <td>
                         {% if sale.is_deleted %}
                         <span style="color: var(--danger); font-size: 0.8rem; font-weight: 600;">Soft Deleted</span>
@@ -167,45 +181,140 @@
 
     {% endif %}
 
-    {% if results.inventory_items %}
+    {% if results.scooters %}
     <div class="card" style="margin-bottom: 2rem;">
-        <h2 style="color: var(--primary); margin-bottom: 1rem;">Inventory</h2>
+        <h2 style="color: #38bdf8; margin-bottom: 1rem;">🛵 Scooters in Stock</h2>
         <div class="table-responsive">
         <table>
-
             <thead>
                 <tr>
-                    <th>Type</th>
-                    <th>Serial Number</th>
+                    <th>Chassis Number</th>
+                    <th>Model</th>
+                    <th>Motor Number</th>
                     <th>Status</th>
                     <th>Action</th>
                 </tr>
             </thead>
             <tbody>
-                {% for item in results.inventory_items %}
-                <tr {% if item.is_deleted %}style="opacity: 0.7; background: rgba(239,68,68,0.05);"{% endif %}>
-                    <td>{{ item.get_item_type_display }}</td>
-                    <td style="font-family: monospace;">
-                        {{ item.serial_number }}
-                        {% if item.is_deleted %}
-                        <span style="background: var(--danger); color: white; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.7rem; margin-left: 0.4rem; font-weight: 700;">DELETED</span>
-                        {% endif %}
+                {% for sc in results.scooters %}
+                <tr {% if sc.is_deleted %}style="opacity: 0.7; background: rgba(239,68,68,0.05);"{% endif %}>
+                    <td style="font-family: monospace; font-weight: 600;">
+                        {{ sc.chassis_number }}
+                        {% if sc.is_deleted %}<span style="background: var(--danger); color: white; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.7rem; margin-left: 0.4rem; font-weight: 700;">DELETED</span>{% endif %}
                     </td>
-                    <td>{{ item.get_status_display }}</td>
-                    <td>
-                        {% if item.is_deleted %}
-                        <span style="color: var(--text-muted); opacity: 0.5; cursor: not-allowed; font-size: 0.85rem; font-weight: 600;">Track Asset (Disabled)</span>
-                        {% else %}
-                        <a href="{% url 'search_asset' %}?q={{ item.serial_number }}" style="color: var(--primary);">Track Asset</a>
-                        {% endif %}
-                    </td>
+                    <td>{{ sc.scooter_model.name }}</td>
+                    <td style="font-family: monospace;">{{ sc.motor_number|default:"-" }}</td>
+                    <td>{{ sc.get_status_display }}</td>
+                    <td><a href="{% url 'search_asset' %}?q={{ sc.chassis_number }}" style="color: var(--primary);">Track Asset</a></td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
         </div>
     </div>
+    {% endif %}
 
+    {% if results.batteries %}
+    <div class="card" style="margin-bottom: 2rem;">
+        <h2 style="color: #34d399; margin-bottom: 1rem;">🔋 Batteries</h2>
+        <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Serial Number</th>
+                    <th>Name</th>
+                    <th>Type / Voltage</th>
+                    <th>Price (With / Without)</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in results.batteries %}
+                <tr {% if b.is_deleted %}style="opacity: 0.7; background: rgba(239,68,68,0.05);"{% endif %}>
+                    <td style="font-family: monospace; font-weight: 600;">
+                        {{ b.serial_number }}
+                        {% if b.is_deleted %}<span style="background: var(--danger); color: white; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.7rem; margin-left: 0.4rem; font-weight: 700;">DELETED</span>{% endif %}
+                    </td>
+                    <td>{{ b.name }}</td>
+                    <td>{{ b.get_battery_type_display }} ({{ b.voltage }})</td>
+                    <td>₹{{ b.price_with_scooter }} / ₹{{ b.price_without_scooter }}</td>
+                    <td>{{ b.get_status_display }}</td>
+                    <td><a href="{% url 'search_asset' %}?q={{ b.serial_number }}" style="color: var(--primary);">Track Asset</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if results.chargers %}
+    <div class="card" style="margin-bottom: 2rem;">
+        <h2 style="color: #c084fc; margin-bottom: 1rem;">🔌 Chargers</h2>
+        <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Serial Number</th>
+                    <th>Name</th>
+                    <th>Voltage</th>
+                    <th>Price (With / Without)</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in results.chargers %}
+                <tr {% if c.is_deleted %}style="opacity: 0.7; background: rgba(239,68,68,0.05);"{% endif %}>
+                    <td style="font-family: monospace; font-weight: 600;">
+                        {{ c.serial_number }}
+                        {% if c.is_deleted %}<span style="background: var(--danger); color: white; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.7rem; margin-left: 0.4rem; font-weight: 700;">DELETED</span>{% endif %}
+                    </td>
+                    <td>{{ c.name }}</td>
+                    <td>{{ c.voltage }}</td>
+                    <td>₹{{ c.price_with_scooter }} / ₹{{ c.price_without_scooter }}</td>
+                    <td>{{ c.get_status_display }}</td>
+                    <td><a href="{% url 'search_asset' %}?q={{ c.serial_number }}" style="color: var(--primary);">Track Asset</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if results.spare_parts %}
+    <div class="card" style="margin-bottom: 2rem;">
+        <h2 style="color: #fbbf24; margin-bottom: 1rem;">⚙️ Spare Parts</h2>
+        <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Part Number</th>
+                    <th>Name</th>
+                    <th>Quantity</th>
+                    <th>Selling Price</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sp in results.spare_parts %}
+                <tr {% if sp.is_deleted %}style="opacity: 0.7; background: rgba(239,68,68,0.05);"{% endif %}>
+                    <td style="font-family: monospace; font-weight: 600;">
+                        {{ sp.part_number }}
+                        {% if sp.is_deleted %}<span style="background: var(--danger); color: white; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.7rem; margin-left: 0.4rem; font-weight: 700;">DELETED</span>{% endif %}
+                    </td>
+                    <td>{{ sp.name }}</td>
+                    <td>{{ sp.quantity }} in stock</td>
+                    <td>₹{{ sp.selling_price }}</td>
+                    <td>{{ sp.get_status_display }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
     {% endif %}
 
     {% if request.user.role == 'ADMIN' %}

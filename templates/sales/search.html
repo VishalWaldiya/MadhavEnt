@@ -6,13 +6,13 @@
 <div class="header">
     <div>
         <h1>Asset Search & Tracking</h1>
-        <p style="color: var(--text-muted); margin-top: 0.5rem;">Search by asset serial number or chassis number.</p>
+        <p style="color: var(--text-muted); margin-top: 0.5rem;">Search by chassis number, battery serial, charger serial, or spare part number.</p>
     </div>
 </div>
 
 <div class="card" style="margin-bottom: 2rem;">
     <form method="get" action="{% url 'search_asset' %}" style="display: flex; gap: 1rem;">
-        <input type="text" name="q" placeholder="Enter Serial Number or Name..." value="{{ query|default:'' }}" required style="flex: 1; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+        <input type="text" name="q" placeholder="Enter Chassis Number, Battery Serial, Charger Serial..." value="{{ query|default:'' }}" required style="flex: 1; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
         <button type="submit" class="btn">Search Asset</button>
     </form>
 </div>
@@ -20,38 +20,67 @@
 {% if query %}
 <div class="card">
     {% if item %}
-        <h2 style="margin-bottom: 1rem; color: var(--success);">Item Found</h2>
+        <h2 style="margin-bottom: 1rem; color: var(--success); display: flex; align-items: center; gap: 0.5rem;">
+            <span>✓</span> {{ item_type|default:"Inventory Item" }} Found
+        </h2>
         <table style="margin-bottom: 2rem;">
             <tbody>
-                <tr><th style="width: 200px;">Item Type</th><td style="background: transparent;">{{ item.get_item_type_display }}</td></tr>
-                <tr><th>Serial Number</th><td style="font-family: monospace;">{{ item.serial_number }}</td></tr>
-                <tr><th>Associated Model/Name</th><td>{% if item.scooter_model %}{{ item.scooter_model.name }}{% else %}{{ item.name }}{% endif %}</td></tr>
-                <tr><th>Current Status</th><td>{{ item.status }}</td></tr>
-                <tr><th>Purchase Date</th><td>{{ item.purchase_date }}</td></tr>
+                <tr><th style="width: 200px;">Asset Category</th><td style="color: #38bdf8; font-weight: 600;">{{ item_type }}</td></tr>
+                <tr>
+                    <th>Serial / Chassis No</th>
+                    <td style="font-family: monospace; font-weight: bold; color: white;">
+                        {% if item.chassis_number %}{{ item.chassis_number }}
+                        {% elif item.serial_number %}{{ item.serial_number }}
+                        {% elif item.part_number %}{{ item.part_number }}
+                        {% else %}-{% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Model / Item Name</th>
+                    <td>
+                        {% if item.scooter_model %}{{ item.scooter_model.name }}
+                        {% else %}{{ item.name }}
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Current Status</th>
+                    <td>
+                        {% if item.status == 'AVAILABLE' %}
+                        <span style="color: var(--success); font-weight: 600;">AVAILABLE IN STOCK</span>
+                        {% elif item.status == 'SOLD' %}
+                        <span style="color: var(--text-muted); font-weight: 600;">SOLD / DELIVERED</span>
+                        {% else %}
+                        <span style="color: var(--danger); font-weight: 600;">{{ item.status }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr><th>Purchase Date</th><td>{{ item.purchase_date|default:"-" }}</td></tr>
             </tbody>
         </table>
 
         {% if sale %}
-        <h2 style="margin-bottom: 1rem; color: var(--primary);">Sale Details</h2>
+        <h2 style="margin-bottom: 1rem; color: var(--primary);">Associated Sale Record</h2>
         <table>
             <tbody>
-                <tr><th style="width: 200px;">Customer Name</th><td style="font-weight: 600;">{{ sale.customer.get_full_name }}</td></tr>
+                <tr><th style="width: 200px;">Invoice Number</th><td style="font-weight: bold; color: #38bdf8;">INV-{{ sale.id }}</td></tr>
+                <tr><th>Customer Name</th><td style="font-weight: 600;">{{ sale.customer.get_full_name|default:"Unknown" }}</td></tr>
                 <tr><th>Customer Contact</th><td>{{ sale.customer.phone_number }}</td></tr>
-                <tr><th>Sale Date</th><td>{{ sale.sale_date }}</td></tr>
-                <tr><th>Financer</th><td>{{ sale.financer|default:"Cash / N/A" }}</td></tr>
-                <tr><th>Total Amount</th><td>₹{{ sale.total_amount }}</td></tr>
+                <tr><th>Sale Date</th><td>{{ sale.sale_date|date:"M d, Y H:i" }}</td></tr>
+                <tr><th>Financer / Payment</th><td>{{ sale.financer|default:"Direct Cash" }}</td></tr>
+                <tr><th>Total Billed Amount</th><td style="font-weight: bold; color: #10b981;">₹{{ sale.total_amount }}</td></tr>
                 {% if sale.customer.aadhar_number %}
                 <tr><th>Aadhar Number</th><td style="font-family: monospace;">{{ sale.customer.aadhar_number }}</td></tr>
                 {% endif %}
                 {% if sale.customer.pan_number %}
                 <tr><th>PAN Number</th><td style="font-family: monospace;">{{ sale.customer.pan_number }}</td></tr>
                 {% endif %}
-                <tr><th>Link</th><td><a href="{% url 'invoice_view' sale.id %}" target="_blank" style="color: var(--primary);">View Full Invoice</a></td></tr>
+                <tr><th>Invoice Link</th><td><a href="{% url 'invoice_view' sale.id %}" target="_blank" style="color: var(--primary); font-weight: 600;">📄 View Official Tax Invoice</a></td></tr>
             </tbody>
         </table>
 
         {% if sale.photos.exists %}
-        <h3 style="margin: 2rem 0 1rem; color: var(--primary);">Attached Sale Photos</h3>
+        <h3 style="margin: 2rem 0 1rem; color: var(--primary);">Attached Delivery Photos</h3>
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem;">
             {% for p in sale.photos.all %}
             <div style="aspect-ratio: 1; overflow: hidden; border-radius: 8px; border: 1px solid #334155;">
@@ -63,7 +92,9 @@
         </div>
         {% endif %}
         {% else %}
-        <p style="color: var(--text-muted);">This item has not been sold yet.</p>
+        <p style="color: var(--text-muted); background: #0f172a; padding: 1rem; border-radius: 8px; border: 1px solid #334155;">
+            ℹ️ This asset is currently in inventory and has not been billed to a customer yet.
+        </p>
         {% endif %}
     {% else %}
         <p style="color: var(--danger); text-align: center; padding: 2rem;">No matching assets found for "{{ query }}".</p>

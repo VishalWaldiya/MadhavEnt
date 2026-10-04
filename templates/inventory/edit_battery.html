@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Battery - EV Stock Manager{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+    <div class="header" style="border-bottom: 1px solid #334155; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1 style="margin: 0; font-size: 1.5rem; color: #34d399; display: flex; align-items: center; gap: 0.5rem;">
+                <span>✏️</span> Edit Battery Unit
+            </h1>
+            <span style="font-size: 0.75rem; background: rgba(52, 211, 153, 0.15); color: #34d399; padding: 0.2rem 0.6rem; border-radius: 6px; border: 1px solid rgba(52, 211, 153, 0.3);">
+                Admin Only
+            </span>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0.25rem 0 0;">
+            Update battery specs, cost price, and dual pricing tiers for <strong>{{ battery.serial_number }}</strong>.
+        </p>
+    </div>
+
+    <form method="post" action="{% url 'edit_battery' battery.id %}">
+        {% csrf_token %}
+        <div class="grid" style="grid-template-columns: 1.5fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Battery Name / Model *</label>
+                <input type="text" name="name" required value="{{ battery.name }}" placeholder="e.g. Lithium Ultra 60V 30Ah" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Serial / Barcode *</label>
+                <input type="text" name="serial_number" required value="{{ battery.serial_number }}" placeholder="e.g. BAT-L60-901" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-family: monospace;">
+            </div>
+        </div>
+
+        <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Chemistry / Type</label>
+                <select name="battery_type" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                    <option value="LITHIUM" {% if battery.battery_type == 'LITHIUM' %}selected{% endif %}>Lithium Ion / LFP</option>
+                    <option value="LEAD_ACID" {% if battery.battery_type == 'LEAD_ACID' %}selected{% endif %}>Lead Acid</option>
+                    <option value="GRAPHENE" {% if battery.battery_type == 'GRAPHENE' %}selected{% endif %}>Graphene</option>
+                </select>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Voltage</label>
+                <select name="voltage" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                    <option value="60V" {% if battery.voltage == '60V' %}selected{% endif %}>60V</option>
+                    <option value="72V" {% if battery.voltage == '72V' %}selected{% endif %}>72V</option>
+                    <option value="48V" {% if battery.voltage == '48V' %}selected{% endif %}>48V</option>
+                </select>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Capacity (Ah)</label>
+                <input type="text" name="capacity_ah" value="{{ battery.capacity_ah }}" placeholder="e.g. 30Ah, 34Ah" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            </div>
+        </div>
+
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; border-radius: 10px; padding: 1.25rem; margin-bottom: 1.5rem;">
+            <h4 style="margin: 0 0 0.5rem; color: #38bdf8; font-size: 0.95rem;">
+                💰 Cost & Dual Selling Prices (₹)
+            </h4>
+            <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                <div>
+                    <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.8rem;">Unit Cost Price (₹)</label>
+                    <input type="number" step="0.01" name="cost_price" value="{{ battery.cost_price|default:'0.00' }}" placeholder="16500.00" style="width: 100%; padding: 0.65rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.4rem; color: #34d399; font-size: 0.8rem;">Price With Scooter (₹) *</label>
+                    <input type="number" step="0.01" name="price_with_scooter" value="{{ battery.price_with_scooter }}" required placeholder="21000.00" style="width: 100%; padding: 0.65rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #34d399; font-weight: 600;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.4rem; color: #38bdf8; font-size: 0.8rem;">Price Standalone (₹) *</label>
+                    <input type="number" step="0.01" name="price_without_scooter" value="{{ battery.price_without_scooter }}" required placeholder="26000.00" style="width: 100%; padding: 0.65rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #38bdf8; font-weight: 600;">
+                </div>
+            </div>
+            <p style="font-size: 0.75rem; color: #94a3b8; margin: 0.75rem 0 0;">
+                ℹ️ When a sale includes this battery, staff can choose whether it's sold bundled with a scooter or standalone retail.
+            </p>
+        </div>
+
+        <div style="margin-bottom: 1.25rem;">
+            <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Status</label>
+            <select name="status" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                <option value="AVAILABLE" {% if battery.status == 'AVAILABLE' %}selected{% endif %}>AVAILABLE</option>
+                <option value="SOLD" {% if battery.status == 'SOLD' %}selected{% endif %}>SOLD</option>
+                <option value="DEFECTIVE" {% if battery.status == 'DEFECTIVE' %}selected{% endif %}>DEFECTIVE</option>
+            </select>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Supplier / Warranty Details</label>
+            <textarea name="supplier_details" rows="2" placeholder="Manufacturer warranty code, batch number..." style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">{{ battery.supplier_details|default:'' }}</textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+            <a href="{% url 'inventory_list' %}?tab=batteries" class="btn" style="background: transparent; border: 1px solid #64748b; color: #94a3b8;">Cancel</a>
+            <button type="submit" class="btn" style="background: #059669;">Update Battery</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

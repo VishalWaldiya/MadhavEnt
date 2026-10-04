@@ -10,7 +10,7 @@ from django.conf import settings
 import os
 import json
 
-from inventory.models import StockItem, ScooterModel
+from inventory.models import ScooterModel, Scooter, Battery, Charger, SparePart
 from sales.models import SaleRecord
 from leads.models import Lead
 from core.models import NotificationPreference, PushDeviceSubscription, BroadcastNotificationLog, Note
@@ -42,30 +42,44 @@ def dashboard(request):
     recent_sales = SaleRecord.objects.order_by('-sale_date')[:5]
     new_leads = Lead.objects.filter(status='NEW')
     
-    # Low stock alerts
+    # Low stock alerts across 4 inventory categories
     low_stock_alerts = []
-    # Check Scooters
+    # Check Scooters per model
     for s in scooters:
-        count = StockItem.objects.filter(scooter_model=s, status='AVAILABLE').count()
+        count = Scooter.objects.filter(scooter_model=s, status='AVAILABLE').count()
         if count < 2:
             low_stock_alerts.append({
-                'item': s.name,
+                'item': f"Scooter: {s.name}",
                 'count': count,
                 'type': 'Scooter'
             })
     
-    # Check other items (Batteries, Chargers, Parts)
-    other_items = StockItem.objects.filter(scooter_model__isnull=True, status='AVAILABLE')\
-        .values('item_type', 'name')\
-        .annotate(total=Count('id'))
-    
-    for item in other_items:
-        if item['total'] < 2:
-            low_stock_alerts.append({
-                'item': item['name'] or item['item_type'],
-                'count': item['total'],
-                'type': item['item_type'].title()
-            })
+    # Check Batteries
+    bat_count = Battery.objects.filter(status='AVAILABLE').count()
+    if bat_count < 3:
+        low_stock_alerts.append({
+            'item': 'Batteries (All Types)',
+            'count': bat_count,
+            'type': 'Battery'
+        })
+
+    # Check Chargers
+    chg_count = Charger.objects.filter(status='AVAILABLE').count()
+    if chg_count < 3:
+        low_stock_alerts.append({
+            'item': 'Chargers (All Types)',
+            'count': chg_count,
+            'type': 'Charger'
+        })
+
+    # Check Spare Parts
+    low_parts = SparePart.objects.filter(quantity__lt=3)
+    for p in low_parts:
+        low_stock_alerts.append({
+            'item': f"Part: {p.name} ({p.part_number})",
+            'count': p.quantity,
+            'type': 'Spare Part'
+        })
     
     return render(request, 'core/dashboard.html', {
         'scooters': scooters,
@@ -231,14 +245,25 @@ def global_search(request):
             if exact_sale and not exact_sale.is_deleted:
                 return redirect(reverse('invoice_view', args=[exact_sale.id]))
 
-        # Check for exact Serial Number Match
-        exact_item = StockItem.all_objects.filter(serial_number__iexact=q).first()
-        if exact_item and not exact_item.is_deleted:
-            return redirect(f"{reverse('search_asset')}?q={exact_item.serial_number}")
+        # Check for exact Serial/Chassis Number Match
+        exact_scooter = Scooter.all_objects.filter(chassis_number__iexact=q).first()
+        if exact_scooter and not exact_scooter.is_deleted:
+            return redirect(f"{reverse('search_asset')}?q={exact_scooter.chassis_number}")
+
+        exact_bat = Battery.all_objects.filter(serial_number__iexact=q).first()
+        if exact_bat and not exact_bat.is_deleted:
+            return redirect(f"{reverse('search_asset')}?q={exact_bat.serial_number}")
+
+        exact_chg = Charger.all_objects.filter(serial_number__iexact=q).first()
+        if exact_chg and not exact_chg.is_deleted:
+            return redirect(f"{reverse('search_asset')}?q={exact_chg.serial_number}")
 
         # 2. General Search Results (Includes soft deleted items using all_objects)
-        results['inventory_items'] = StockItem.all_objects.filter(Q(serial_number__icontains=q) | Q(name__icontains=q))
+        results['scooters'] = Scooter.all_objects.filter(Q(chassis_number__icontains=q) | Q(motor_number__icontains=q))
         results['scooter_models'] = ScooterModel.all_objects.filter(name__icontains=q)
+        results['batteries'] = Battery.all_objects.filter(Q(serial_number__icontains=q) | Q(name__icontains=q))
+        results['chargers'] = Charger.all_objects.filter(Q(serial_number__icontains=q) | Q(name__icontains=q))
+        results['spare_parts'] = SparePart.all_objects.filter(Q(part_number__icontains=q) | Q(name__icontains=q))
         
         results['sales'] = SaleRecord.all_objects.filter(
             Q(customer__first_name__icontains=q) | Q(customer__last_name__icontains=q) | \
@@ -325,8 +350,11 @@ def recycle_bin(request):
 
     deleted_staff = User.all_objects.filter(is_deleted=True).exclude(role='CUSTOMER')
     deleted_customers = User.all_objects.filter(is_deleted=True, role='CUSTOMER')
-    deleted_stock_items = StockItem.all_objects.filter(is_deleted=True)
     deleted_scooter_models = ScooterModel.all_objects.filter(is_deleted=True)
+    deleted_scooters = Scooter.all_objects.filter(is_deleted=True)
+    deleted_batteries = Battery.all_objects.filter(is_deleted=True)
+    deleted_chargers = Charger.all_objects.filter(is_deleted=True)
+    deleted_spare_parts = SparePart.all_objects.filter(is_deleted=True)
     deleted_sales = SaleRecord.all_objects.filter(is_deleted=True)
     deleted_leads = Lead.all_objects.filter(is_deleted=True)
     deleted_tasks = ShopTask.all_objects.filter(is_deleted=True)
@@ -335,7 +363,8 @@ def recycle_bin(request):
 
     total_deleted = (
         deleted_staff.count() + deleted_customers.count() +
-        deleted_stock_items.count() + deleted_scooter_models.count() +
+        deleted_scooter_models.count() + deleted_scooters.count() +
+        deleted_batteries.count() + deleted_chargers.count() + deleted_spare_parts.count() +
         deleted_sales.count() + deleted_leads.count() +
         deleted_tasks.count() + deleted_notes.count() + deleted_templates.count()
     )
@@ -343,8 +372,11 @@ def recycle_bin(request):
     return render(request, 'core/recycle_bin.html', {
         'deleted_staff': deleted_staff,
         'deleted_customers': deleted_customers,
-        'deleted_stock_items': deleted_stock_items,
         'deleted_scooter_models': deleted_scooter_models,
+        'deleted_scooters': deleted_scooters,
+        'deleted_batteries': deleted_batteries,
+        'deleted_chargers': deleted_chargers,
+        'deleted_spare_parts': deleted_spare_parts,
         'deleted_sales': deleted_sales,
         'deleted_leads': deleted_leads,
         'deleted_tasks': deleted_tasks,
@@ -365,8 +397,11 @@ def restore_item(request, model_name, item_id):
     model_map = {
         'user': User,
         'note': Note,
-        'stockitem': StockItem,
         'scootermodel': ScooterModel,
+        'scooter': Scooter,
+        'battery': Battery,
+        'charger': Charger,
+        'sparepart': SparePart,
         'salerecord': SaleRecord,
         'lead': Lead,
         'shoptask': ShopTask,
@@ -396,8 +431,11 @@ def hard_delete_item(request, model_name, item_id):
     model_map = {
         'user': User,
         'note': Note,
-        'stockitem': StockItem,
         'scootermodel': ScooterModel,
+        'scooter': Scooter,
+        'battery': Battery,
+        'charger': Charger,
+        'sparepart': SparePart,
         'salerecord': SaleRecord,
         'lead': Lead,
         'shoptask': ShopTask,
@@ -428,7 +466,7 @@ def empty_recycle_bin(request):
         from leads.models import Lead, Quote
         from core.models import Note
 
-        models_list = [Quote, Lead, SaleRecord, ShopTask, TaskTemplate, StockItem, ScooterModel, Note, User]
+        models_list = [Quote, Lead, SaleRecord, ShopTask, TaskTemplate, SparePart, Charger, Battery, Scooter, ScooterModel, Note, User]
         
         deleted_count = 0
         protected_count = 0
@@ -460,8 +498,11 @@ def bulk_soft_delete_items(request, model_name):
     model_map = {
         'user': User,
         'note': Note,
-        'stockitem': StockItem,
         'scootermodel': ScooterModel,
+        'scooter': Scooter,
+        'battery': Battery,
+        'charger': Charger,
+        'sparepart': SparePart,
         'salerecord': SaleRecord,
         'lead': Lead,
         'shoptask': ShopTask,
@@ -539,8 +580,11 @@ def bulk_restore_items(request, model_name):
         model_map = {
             'user': User,
             'note': Note,
-            'stockitem': StockItem,
             'scootermodel': ScooterModel,
+            'scooter': Scooter,
+            'battery': Battery,
+            'charger': Charger,
+            'sparepart': SparePart,
             'salerecord': SaleRecord,
             'lead': Lead,
             'shoptask': ShopTask,
@@ -578,8 +622,11 @@ def bulk_hard_delete_items(request, model_name):
         model_map = {
             'user': User,
             'note': Note,
-            'stockitem': StockItem,
             'scootermodel': ScooterModel,
+            'scooter': Scooter,
+            'battery': Battery,
+            'charger': Charger,
+            'sparepart': SparePart,
             'salerecord': SaleRecord,
             'lead': Lead,
             'shoptask': ShopTask,

@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Scooter Chassis - EV Stock Manager{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+    <div class="header" style="border-bottom: 1px solid #334155; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h1 style="margin: 0; font-size: 1.5rem; color: #38bdf8; display: flex; align-items: center; gap: 0.5rem;">
+            <span>🛵</span> Add Physical Scooter Unit
+        </h1>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0.25rem 0 0;">
+            Register incoming vehicle stock with unique chassis and motor numbers.
+        </p>
+    </div>
+
+    <form method="post" action="{% url 'add_scooter' %}">
+        {% csrf_token %}
+        <div style="margin-bottom: 1.25rem;">
+            <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Scooter Model *</label>
+            <select name="scooter_model" id="scooter_model_select" required onchange="onModelSelect(this)" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                <option value="">-- Select Scooter Model --</option>
+                {% for m in models %}
+                <option value="{{ m.id }}" data-cost="{{ m.cost_price }}" data-sell="{{ m.selling_price }}">
+                    {{ m.name }} (Base: ₹{{ m.selling_price }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="margin-bottom: 1.25rem;">
+            <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Chassis Number (VIN) *</label>
+            <input type="text" name="chassis_number" required placeholder="e.g. CH-ECO-9842" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-family: monospace;">
+        </div>
+
+        <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Motor Number</label>
+                <input type="text" name="motor_number" placeholder="e.g. MOT-5521" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-family: monospace;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Color / Finish</label>
+                <input type="text" name="color" value="Matte Black" placeholder="e.g. Pearl White" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            </div>
+        </div>
+
+        <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Unit Cost Price (₹)</label>
+                <input type="number" step="0.01" name="cost_price" id="cost_price_input" placeholder="₹48000.00" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Selling Price (₹)</label>
+                <input type="number" step="0.01" name="selling_price" id="selling_price_input" placeholder="₹64999.00" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #38bdf8; font-weight: 600;">
+            </div>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Supplier / Batch Information</label>
+            <textarea name="supplier_details" rows="2" placeholder="OEM batch no., invoice ref, delivery date..." style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;"></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+            <a href="{% url 'inventory_list' %}?tab=scooters" class="btn" style="background: transparent; border: 1px solid #64748b; color: #94a3b8;">Cancel</a>
+            <button type="submit" class="btn" style="background: #0284c7;">Add Scooter to Stock</button>
+        </div>
+    </form>
+</div>
+
+<script>
+function onModelSelect(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    if (opt && opt.value) {
+        if (opt.dataset.cost) document.getElementById('cost_price_input').value = opt.dataset.cost;
+        if (opt.dataset.sell) document.getElementById('selling_price_input').value = opt.dataset.sell;
+    }
+}
+</script>
+{% endblock %}

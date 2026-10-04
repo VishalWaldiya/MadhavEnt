@@ -39,7 +39,11 @@
                     <td><input type="checkbox" name="selected_ids" value="{{ lead.id }}" onchange="updateBulkBar('bulk-form-lead')"></td>
                     {% endif %}
                     <td>{{ lead.created_at|date:"M d, Y" }}</td>
-                    <td style="font-weight: 600;">{{ lead.customer.get_full_name|default:"Unknown" }}</td>
+                    <td style="font-weight: 600;">
+                        <a href="{% url 'lead_detail' lead.id %}" style="color: #38bdf8; text-decoration: none;" title="View Lead Details">
+                            {{ lead.customer.get_full_name|default:"Unknown" }}
+                        </a>
+                    </td>
                     <td>{{ lead.customer.phone_number }}</td>
                     <td>
                         {% if lead.requirements.all %}
@@ -61,17 +65,19 @@
                         </span>
                     </td>
                     <td>
-                        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                            <a href="{% url 'add_quote' lead.id %}" class="btn" style="padding: 0.25rem 0.75rem; font-size: 0.85rem; background: transparent; border: 1px solid var(--primary); color: var(--primary);">+ Quote</a>
+                        <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
+                            <a href="{% url 'lead_detail' lead.id %}" class="btn" style="padding: 0.25rem 0.6rem; font-size: 0.8rem; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; text-decoration: none;" title="View Timeline & Details">👁️ Show</a>
+                            <a href="{% url 'edit_lead' lead.id %}" class="btn" style="padding: 0.25rem 0.6rem; font-size: 0.8rem; background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.4); color: #fbbf24; text-decoration: none;" title="Edit Lead">✏️ Edit</a>
+                            <a href="{% url 'add_quote' lead.id %}" class="btn" style="padding: 0.25rem 0.6rem; font-size: 0.8rem; background: transparent; border: 1px solid var(--primary); color: var(--primary);">+ Quote</a>
                             
                             {% if lead.status != 'REJECTED' and lead.status != 'CONVERTED' %}
-                            <button type="button" onclick="document.getElementById('reject-form-{{ lead.id }}').style.display='flex'" class="btn" style="padding: 0.25rem 0.75rem; font-size: 0.85rem; background: transparent; border: 1px solid var(--danger); color: var(--danger);">Reject</button>
+                            <button type="button" onclick="document.getElementById('reject-form-{{ lead.id }}').style.display='flex'" class="btn" style="padding: 0.25rem 0.6rem; font-size: 0.8rem; background: transparent; border: 1px solid var(--danger); color: var(--danger);">Reject</button>
                             {% endif %}
 
                             {% if request.user.role == 'ADMIN' %}
                             <form action="{% url 'delete_lead' lead.id %}" method="post" style="margin: 0;" onsubmit="return confirm('Move lead for {{ lead.customer.get_full_name|default:"Unknown" }} to Recycle Bin?');">
                                 {% csrf_token %}
-                                <button type="submit" class="btn" style="background: var(--danger); padding: 0.25rem 0.6rem; font-size: 0.85rem;">Delete</button>
+                                <button type="submit" class="btn" style="background: var(--danger); padding: 0.25rem 0.5rem; font-size: 0.8rem;">Delete</button>
                             </form>
                             {% endif %}
                         </div>

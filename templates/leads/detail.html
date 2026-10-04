@@ -1,0 +1,400 @@
+{% extends 'base.html' %}
+
+{% block title %}Lead #{{ lead.id }} Details - EV Stock Manager{% endblock %}
+
+{% block extra_head %}
+<style>
+.badge-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+.status-new { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
+.status-in_progress { background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.4); }
+.status-converted { background: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.4); }
+.status-lost { background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.4); }
+.status-rejected { background: rgba(244, 63, 94, 0.15); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.4); }
+
+.timeline {
+    position: relative;
+    padding-left: 1.75rem;
+}
+.timeline::before {
+    content: '';
+    position: absolute;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    left: 7px;
+    width: 2px;
+    background: #334155;
+}
+.timeline-item {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+.timeline-item:last-child {
+    margin-bottom: 0;
+}
+.timeline-dot {
+    position: absolute;
+    left: -1.75rem;
+    top: 0.25rem;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #0f172a;
+    border: 3px solid #38bdf8;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+}
+.dot-created { border-color: #38bdf8; }
+.dot-status_change { border-color: #fbbf24; }
+.dot-edited { border-color: #c084fc; }
+.dot-note_added { border-color: #34d399; }
+.dot-quote_added { border-color: #60a5fa; }
+.dot-rejected { border-color: #f43f5e; }
+
+.timeline-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 1rem;
+    transition: transform 0.15s, border-color 0.15s;
+}
+.timeline-card:hover {
+    border-color: #475569;
+}
+.thumb-doc {
+    width: 80px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #334155;
+    transition: transform 0.2s;
+    cursor: pointer;
+}
+.thumb-doc:hover {
+    transform: scale(1.08);
+    border-color: #38bdf8;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Top Header Bar -->
+<div class="header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.35rem;">
+            <a href="{% url 'leads_list' %}" style="color: #94a3b8; text-decoration: none; font-size: 0.9rem;">← Leads List</a>
+            <span style="color: #475569;">/</span>
+            <span style="color: #cbd5e1; font-size: 0.9rem; font-weight: 500;">Lead #{{ lead.id }}</span>
+        </div>
+        <h1 style="margin: 0; font-size: 1.8rem; display: flex; align-items: center; gap: 0.75rem;">
+            <span>👤</span> {{ lead.customer.get_full_name|default:"Unknown Customer" }}
+            {% if lead.status == 'NEW' %}
+                <span class="badge-status status-new">● NEW</span>
+            {% elif lead.status == 'IN_PROGRESS' %}
+                <span class="badge-status status-in_progress">● IN PROGRESS</span>
+            {% elif lead.status == 'CONVERTED' %}
+                <span class="badge-status status-converted">✔ CONVERTED</span>
+            {% elif lead.status == 'LOST' %}
+                <span class="badge-status status-lost">✖ LOST</span>
+            {% elif lead.status == 'REJECTED' %}
+                <span class="badge-status status-rejected">⊘ REJECTED</span>
+            {% endif %}
+        </h1>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0.35rem 0 0;">
+            Captured on {{ lead.created_at|date:"M d, Y h:i A" }} • Managed by <strong>{{ lead.salesperson.get_full_name|default:lead.salesperson.username|default:"Unassigned" }}</strong>
+        </p>
+    </div>
+
+    <!-- Actions -->
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'edit_lead' lead.id %}" class="btn" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); text-decoration: none; font-size: 0.85rem;">
+            ✏️ Edit Lead
+        </a>
+        <a href="{% url 'add_quote' lead.id %}" class="btn" style="background: #0284c7; text-decoration: none; font-size: 0.85rem;">
+            + Generate Quote
+        </a>
+    </div>
+</div>
+
+{% if lead.status == 'REJECTED' and lead.rejection_reason %}
+<div style="background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; color: #fb7185; display: flex; align-items: center; gap: 0.75rem;">
+    <span style="font-size: 1.25rem;">⚠️</span>
+    <div>
+        <strong>Rejection Reason:</strong> {{ lead.rejection_reason }}
+    </div>
+</div>
+{% endif %}
+
+<!-- 2-Column Content Grid -->
+<div class="grid" style="grid-template-columns: 1.1fr 1.3fr; gap: 1.5rem; align-items: start;">
+
+    <!-- Left Column: Customer Details, Requirements, Quotes, Quick Status Update -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        
+        <!-- Customer Profile Card -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid #334155; padding-bottom: 0.75rem;">
+                <h3 style="margin: 0; font-size: 1.1rem; color: #38bdf8; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>📋</span> Customer Information
+                </h3>
+                <a href="{% url 'edit_lead' lead.id %}" style="font-size: 0.8rem; color: #94a3b8; text-decoration: none;">✏️ Edit</a>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.85rem;">
+                <div>
+                    <span style="color: var(--text-muted); display: block; font-size: 0.75rem; text-transform: uppercase;">Full Name</span>
+                    <strong style="color: white; font-size: 0.95rem;">{{ lead.customer.get_full_name|default:"Not Provided" }}</strong>
+                </div>
+                <div>
+                    <span style="color: var(--text-muted); display: block; font-size: 0.75rem; text-transform: uppercase;">Phone Number</span>
+                    <strong style="color: #38bdf8; font-size: 0.95rem;">{{ lead.customer.phone_number|default:"-" }}</strong>
+                </div>
+                <div>
+                    <span style="color: var(--text-muted); display: block; font-size: 0.75rem; text-transform: uppercase;">Aadhar Number</span>
+                    <span style="color: #cbd5e1; font-family: monospace;">{{ lead.customer.aadhar_number|default:"Not Provided" }}</span>
+                </div>
+                <div>
+                    <span style="color: var(--text-muted); display: block; font-size: 0.75rem; text-transform: uppercase;">PAN Number</span>
+                    <span style="color: #cbd5e1; font-family: monospace;">{{ lead.customer.pan_number|default:"Not Provided" }}</span>
+                </div>
+            </div>
+
+            <!-- KYC Documents Preview -->
+            {% if lead.customer.aadhar_front_photo or lead.customer.aadhar_back_photo or lead.customer.pan_photo %}
+            <div style="margin-top: 1.25rem; border-top: 1px solid #334155; padding-top: 1rem;">
+                <span style="color: var(--text-muted); display: block; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">Identity Documents</span>
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                    {% if lead.customer.aadhar_front_photo %}
+                    <a href="{{ lead.customer.aadhar_front_photo.url }}" target="_blank" title="Aadhar Front">
+                        <img src="{{ lead.customer.aadhar_front_photo.url }}" alt="Aadhar Front" class="thumb-doc">
+                    </a>
+                    {% endif %}
+                    {% if lead.customer.aadhar_back_photo %}
+                    <a href="{{ lead.customer.aadhar_back_photo.url }}" target="_blank" title="Aadhar Back">
+                        <img src="{{ lead.customer.aadhar_back_photo.url }}" alt="Aadhar Back" class="thumb-doc">
+                    </a>
+                    {% endif %}
+                    {% if lead.customer.pan_photo %}
+                    <a href="{{ lead.customer.pan_photo.url }}" target="_blank" title="PAN Document">
+                        <img src="{{ lead.customer.pan_photo.url }}" alt="PAN Photo" class="thumb-doc">
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Requirements & Interest Card -->
+        <div class="card">
+            <h3 style="margin: 0 0 1rem; font-size: 1.1rem; color: #fbbf24; display: flex; align-items: center; gap: 0.5rem;">
+                <span>🎯</span> Requirements & Interest
+            </h3>
+
+            {% if lead.requirements.all %}
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    {% for req in lead.requirements.all %}
+                    <div style="background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong style="color: white; font-size: 0.9rem;">{{ req.get_item_name }}</strong>
+                            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.2rem;">
+                                Quantity: {{ req.quantity }} unit(s) • Unit Price: ₹{{ req.unit_price }}
+                            </div>
+                        </div>
+                        <span style="color: #34d399; font-weight: 600; font-size: 0.95rem;">₹{{ req.total_price }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div style="background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 0.75rem; color: #cbd5e1; font-size: 0.85rem; line-height: 1.5;">
+                    {{ lead.interested_items|default:"No specific items recorded. Customer showed general interest." }}
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Quotations Card -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0; font-size: 1.1rem; color: #34d399; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>📜</span> Quotations ({{ quotes|length }})
+                </h3>
+                <a href="{% url 'add_quote' lead.id %}" class="btn" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; background: #059669;">+ New Quote</a>
+            </div>
+
+            {% for q in quotes %}
+            <div style="background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 0.85rem; margin-bottom: 0.75rem;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <strong style="color: white; font-size: 0.95rem;">Quote #{{ q.id }}</strong>
+                        <span style="font-size: 0.75rem; color: #94a3b8; display: block; margin-top: 0.2rem;">
+                            Created on {{ q.created_at|date:"M d, Y" }} • Valid until {{ q.valid_until|date:"M d, Y" }}
+                        </span>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="font-size: 1.1rem; font-weight: 700; color: #34d399;">₹{{ q.quoted_price }}</span>
+                        {% if q.discount_amount > 0 %}
+                        <div style="font-size: 0.75rem; color: #fbbf24;">
+                            -₹{{ q.discount_amount }} ({{ q.discount_reason|default:"Discount" }})
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if q.items.all %}
+                <div style="margin-top: 0.65rem; padding-top: 0.65rem; border-top: 1px dashed #334155; font-size: 0.8rem; color: #cbd5e1;">
+                    {% for item in q.items.all %}
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.2rem;">
+                        <span>• {{ item.item_name }} (x{{ item.quantity }})</span>
+                        <span style="color: #94a3b8;">₹{{ item.total_price }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% empty %}
+            <p style="color: var(--text-muted); font-size: 0.85rem; text-align: center; margin: 1rem 0;">
+                No quotations generated yet.
+            </p>
+            {% endfor %}
+        </div>
+
+        <!-- Quick Status Update Card -->
+        <div class="card" style="background: rgba(15, 23, 42, 0.7);">
+            <h4 style="margin: 0 0 0.75rem; font-size: 0.95rem; color: #38bdf8;">
+                ⚡ Quick Status Update
+            </h4>
+            <form action="{% url 'update_lead_status' lead.id %}" method="post">
+                {% csrf_token %}
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <select name="status" id="quick_status_select" onchange="toggleReasonInput(this.value)" style="flex: 1; padding: 0.6rem; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 0.85rem;">
+                        <option value="NEW" {% if lead.status == 'NEW' %}selected{% endif %}>NEW</option>
+                        <option value="IN_PROGRESS" {% if lead.status == 'IN_PROGRESS' %}selected{% endif %}>IN PROGRESS</option>
+                        <option value="CONVERTED" {% if lead.status == 'CONVERTED' %}selected{% endif %}>CONVERTED (Won)</option>
+                        <option value="LOST" {% if lead.status == 'LOST' %}selected{% endif %}>LOST</option>
+                        <option value="REJECTED" {% if lead.status == 'REJECTED' %}selected{% endif %}>REJECTED</option>
+                    </select>
+                    <button type="submit" class="btn" style="background: #0284c7; padding: 0.6rem 1rem; font-size: 0.85rem;">Update</button>
+                </div>
+                <div id="quick_reason_div" style="display: {% if lead.status == 'REJECTED' %}block{% else %}none{% endif %}; margin-top: 0.5rem;">
+                    <input type="text" name="reason" value="{{ lead.rejection_reason|default:'' }}" placeholder="State rejection or status change reason..." style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 0.8rem;">
+                </div>
+            </form>
+        </div>
+
+    </div>
+
+    <!-- Right Column: Lead Activity History & Timeline -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+        <!-- Log Interaction / Add Note Card -->
+        <div class="card" style="border-color: rgba(56, 189, 248, 0.3);">
+            <h3 style="margin: 0 0 0.75rem; font-size: 1.1rem; color: #38bdf8; display: flex; align-items: center; gap: 0.5rem;">
+                <span>✍️</span> Record Interaction or Follow-up Note
+            </h3>
+            <form action="{% url 'add_lead_note' lead.id %}" method="post">
+                {% csrf_token %}
+                <div style="margin-bottom: 0.75rem;">
+                    <label style="display: block; margin-bottom: 0.35rem; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">Interaction Channel / Type</label>
+                    <select name="note_type" style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 0.85rem;">
+                        <option value="📞 Phone Call">📞 Phone Call</option>
+                        <option value="🛵 Test Ride Experience">🛵 Test Ride Experience</option>
+                        <option value="🏢 Showroom Visit">🏢 Showroom Visit</option>
+                        <option value="💬 WhatsApp Conversation">💬 WhatsApp Conversation</option>
+                        <option value="💰 Price Negotiation">💰 Price Negotiation</option>
+                        <option value="📝 General Follow-up Note">📝 General Follow-up Note</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 0.75rem;">
+                    <textarea name="content" required rows="3" placeholder="What happened during this interaction? Customer remarks, questions, next follow-up date..." style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 0.85rem; resize: vertical;"></textarea>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end;">
+                    <button type="submit" class="btn" style="background: #059669; font-size: 0.85rem; padding: 0.5rem 1.25rem;">
+                        Save to Timeline
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Activity History Timeline -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid #334155; padding-bottom: 0.75rem;">
+                <h3 style="margin: 0; font-size: 1.15rem; color: white; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>⏳</span> Lead History & Activity Timeline
+                </h3>
+                <span style="font-size: 0.75rem; background: #334155; color: #cbd5e1; padding: 0.2rem 0.6rem; border-radius: 9999px;">
+                    {{ history_entries|length }} Event(s)
+                </span>
+            </div>
+
+            <div class="timeline">
+                {% for event in history_entries %}
+                <div class="timeline-item">
+                    <span class="timeline-dot 
+                        {% if event.action_type == 'CREATED' %}dot-created
+                        {% elif event.action_type == 'STATUS_CHANGE' %}dot-status_change
+                        {% elif event.action_type == 'EDITED' %}dot-edited
+                        {% elif event.action_type == 'NOTE_ADDED' %}dot-note_added
+                        {% elif event.action_type == 'QUOTE_ADDED' %}dot-quote_added
+                        {% elif event.action_type == 'REJECTED' %}dot-rejected
+                        {% endif %}">
+                    </span>
+
+                    <div class="timeline-card">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.4rem;">
+                            <strong style="color: white; font-size: 0.9rem;">
+                                {% if event.action_type == 'CREATED' %}🎉
+                                {% elif event.action_type == 'STATUS_CHANGE' %}🔄
+                                {% elif event.action_type == 'EDITED' %}✏️
+                                {% elif event.action_type == 'NOTE_ADDED' %}💬
+                                {% elif event.action_type == 'QUOTE_ADDED' %}📜
+                                {% elif event.action_type == 'REJECTED' %}🚫
+                                {% endif %}
+                                {{ event.title }}
+                            </strong>
+                            <span style="font-size: 0.75rem; color: #94a3b8; white-space: nowrap;">
+                                {{ event.created_at|date:"M d, Y h:i A" }}
+                            </span>
+                        </div>
+
+                        {% if event.details %}
+                        <div style="font-size: 0.83rem; color: #cbd5e1; line-height: 1.45; white-space: pre-wrap; margin-bottom: 0.5rem;">
+                            {{ event.details }}
+                        </div>
+                        {% endif %}
+
+                        <div style="font-size: 0.75rem; color: #64748b; display: flex; align-items: center; gap: 0.35rem;">
+                            <span>Logged by:</span>
+                            <strong style="color: #94a3b8;">{{ event.performed_by.get_full_name|default:event.performed_by.username|default:"System" }}</strong>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <p style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 2rem 0;">
+                    No activity history recorded for this lead yet.
+                </p>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+function toggleReasonInput(val) {
+    const div = document.getElementById('quick_reason_div');
+    if (val === 'REJECTED' || val === 'LOST') {
+        div.style.display = 'block';
+    } else {
+        div.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

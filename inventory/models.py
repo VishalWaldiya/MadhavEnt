@@ -1,110 +1,193 @@
 from django.db import models
+from django.db.models import Q
 from core.models import SoftDeleteModel
 
 class ScooterModel(SoftDeleteModel):
     name = models.CharField(max_length=100)
-    range_km = models.IntegerField()
-    watts = models.IntegerField()
-    charging_time = models.FloatField()
-    last_price = models.DecimalField(max_digits=10, decimal_places=2)
-
-    # Battery variants and their ranges
-    battery_lithium_60w_range = models.IntegerField(null=True, blank=True, help_text="Range with 60W Lithium Battery")
-    battery_lithium_72w_range = models.IntegerField(null=True, blank=True, help_text="Range with 72W Lithium Battery")
-    battery_lead_60w_range = models.IntegerField(null=True, blank=True, help_text="Range with 60W Lead Battery")
-    battery_lead_72w_range = models.IntegerField(null=True, blank=True, help_text="Range with 72W Lead Battery")
+    watts = models.IntegerField(default=1200, help_text="Motor power in watts")
+    charging_time = models.FloatField(default=4.0, help_text="Charging time in hours")
+    cost_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, help_text="Cost Price")
+    selling_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, help_text="Base Selling Price")
     
+    # Battery configuration dependent ranges
+    battery_lithium_60w_range = models.IntegerField(default=85, help_text="Range with 60V Lithium Battery (km)")
+    battery_lithium_72w_range = models.IntegerField(default=115, help_text="Range with 72V Lithium Battery (km)")
+    battery_lead_60w_range = models.IntegerField(default=55, help_text="Range with 60V Lead Acid Battery (km)")
+    battery_lead_72w_range = models.IntegerField(default=70, help_text="Range with 72V Lead Acid Battery (km)")
+    default_range_km = models.IntegerField(default=80, help_text="Default/Nominal Range (km)")
+    
+    description = models.TextField(blank=True, null=True)
     misc = models.JSONField(default=dict, blank=True, null=True)
 
-    def get_connected_resources(self, include_deleted=False):
-        from sales.models import SaleRecord
-        from leads.models import Quote
+    def get_range_for_battery(self, battery=None):
+        """Calculate real-world estimated range based on battery chemistry and voltage."""
+        if not battery:
+            return self.default_range_km
+        b_type = (battery.battery_type or '').upper()
+        b_volt = (battery.voltage or '').upper()
+        
+        if 'LITHIUM' in b_type:
+            if '72' in b_volt and self.battery_lithium_72w_range:
+                return self.battery_lithium_72w_range
+            elif self.battery_lithium_60w_range:
+                return self.battery_lithium_60w_range
+        elif 'LEAD' in b_type:
+            if '72' in b_volt and self.battery_lead_72w_range:
+                return self.battery_lead_72w_range
+            elif self.battery_lead_60w_range:
+                return self.battery_lead_60w_range
+        return self.default_range_km
 
+    def get_connected_resources(self, include_deleted=False):
         filter_func = (lambda manager: manager.all()) if include_deleted else (lambda manager: manager.filter(is_deleted=False))
         connected = []
-
-        for item in filter_func(StockItem.all_objects.filter(scooter_model=self)):
+        for scooter in filter_func(self.scooters):
             connected.append({
-                'type': 'Stock Item',
-                'id': item.id,
-                'name': f"{item.get_item_type_display()} - {item.serial_number}",
-                'object': item
-            })
-        for sale in filter_func(SaleRecord.all_objects.filter(scooter_model=self)):
-            connected.append({
-                'type': 'Sale Record',
-                'id': sale.id,
-                'name': f"Sale INV-{sale.id}",
-                'object': sale
-            })
-        for quote in filter_func(Quote.all_objects.filter(scooter_model=self)):
-            connected.append({
-                'type': 'Quote',
-                'id': quote.id,
-                'name': f"Quote #{quote.id} for {quote.lead}",
-                'object': quote
+                'type': 'Scooter Unit',
+                'id': scooter.id,
+                'name': f"{self.name} - Chassis {scooter.chassis_number}",
+                'object': scooter
             })
         return connected
 
     def __str__(self):
-        return self.name
+        return f"{self.name} (Base ₹{self.selling_price})"
 
-class StockItem(SoftDeleteModel):
-    TYPE_CHOICES = (
-        ('SCOOTER', 'Electric Scooter'),
-        ('BATTERY', 'Battery'),
-        ('CHARGER', 'Battery Charger'),
-        ('SPARE', 'Spare Part'),
+
+class Scooter(SoftDeleteModel):
+    STATUS_CHOICES = (
+        ('AVAILABLE', 'Available'),
+        ('SOLD', 'Sold'),
+        ('DEFECTIVE', 'Defective'),
     )
+    scooter_model = models.ForeignKey(ScooterModel, on_delete=models.CASCADE, related_name='scooters')
+    chassis_number = models.CharField(max_length=100, unique=True)
+    motor_number = models.CharField(max_length=100, blank=True, default='')
+    color = models.CharField(max_length=50, blank=True, default='Standard')
+    cost_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    selling_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='AVAILABLE')
+    purchase_date = models.DateField(auto_now_add=True)
+    supplier_details = models.TextField(blank=True, null=True)
+    misc = models.JSONField(default=dict, blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        if not self.selling_price and self.scooter_model:
+            self.selling_price = self.scooter_model.selling_price
+        if not self.cost_price and self.scooter_model:
+            self.cost_price = self.scooter_model.cost_price
+        super().save(*args, **kwargs)
+
+    def get_connected_resources(self, include_deleted=False):
+        from sales.models import SaleScooterItem
+        filter_func = (lambda manager: manager.all()) if include_deleted else (lambda manager: manager.filter(is_deleted=False))
+        connected = []
+        for item in filter_func(SaleScooterItem.objects.filter(scooter=self)):
+            connected.append({
+                'type': 'Sale Record',
+                'id': item.sale_record.id,
+                'name': f"Sale INV-{item.sale_record.id}",
+                'object': item.sale_record
+            })
+        return connected
+
+    def __str__(self):
+        return f"{self.scooter_model.name} (Chassis: {self.chassis_number})"
+
+
+class Battery(SoftDeleteModel):
     STATUS_CHOICES = (
         ('AVAILABLE', 'Available'),
         ('SOLD', 'Sold'),
         ('DEFECTIVE', 'Defective'),
     )
     BATTERY_TYPE_CHOICES = (
-        ('LITHIUM', 'Lithium Battery'),
-        ('LEAD', 'Lead Battery'),
+        ('LITHIUM', 'Lithium Ion / LFP'),
+        ('LEAD_ACID', 'Lead Acid'),
+        ('GRAPHENE', 'Graphene'),
     )
-    WATTAGE_CHOICES = (
-        ('60W', '60 Watt'),
-        ('72W', '72 Watt'),
+    VOLTAGE_CHOICES = (
+        ('48V', '48V'),
+        ('60V', '60V'),
+        ('72V', '72V'),
     )
-    item_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
-    scooter_model = models.ForeignKey(ScooterModel, on_delete=models.SET_NULL, null=True, blank=True)
-    name = models.CharField(max_length=100) # Could be spare part name
+    name = models.CharField(max_length=100)
     serial_number = models.CharField(max_length=100, unique=True)
+    battery_type = models.CharField(max_length=20, choices=BATTERY_TYPE_CHOICES, default='LITHIUM')
+    voltage = models.CharField(max_length=20, choices=VOLTAGE_CHOICES, default='60V')
+    capacity_ah = models.CharField(max_length=20, default='30Ah', blank=True)
+    
+    # 2 different selling price categories: With Scooter and Without Scooter
+    cost_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    price_with_scooter = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0.00,
+        help_text="Bundled price when purchased alongside a scooter"
+    )
+    price_without_scooter = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0.00,
+        help_text="Standard retail price when purchased independently"
+    )
+    
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='AVAILABLE')
     purchase_date = models.DateField(auto_now_add=True)
     supplier_details = models.TextField(blank=True, null=True)
-    
-    battery_type = models.CharField(max_length=20, choices=BATTERY_TYPE_CHOICES, null=True, blank=True)
-    wattage = models.CharField(max_length=20, choices=WATTAGE_CHOICES, null=True, blank=True)
-    
     misc = models.JSONField(default=dict, blank=True, null=True)
 
-    def get_connected_resources(self, include_deleted=False):
-        from sales.models import SaleRecord
-        from leads.models import Quote
-        from django.db.models import Q
+    def __str__(self):
+        return f"{self.name} [{self.serial_number}] ({self.voltage} {self.capacity_ah})"
 
-        filter_func = (lambda manager: manager.all()) if include_deleted else (lambda manager: manager.filter(is_deleted=False))
-        connected = []
 
-        for sale in filter_func(SaleRecord.all_objects.filter(Q(chassis_number=self) | Q(charger=self))):
-            connected.append({
-                'type': 'Sale Record',
-                'id': sale.id,
-                'name': f"Sale INV-{sale.id}",
-                'object': sale
-            })
-        for quote in filter_func(Quote.all_objects.filter(Q(battery=self) | Q(charger=self))):
-            connected.append({
-                'type': 'Quote',
-                'id': quote.id,
-                'name': f"Quote #{quote.id} for {quote.lead}",
-                'object': quote
-            })
-        return connected
+class Charger(SoftDeleteModel):
+    STATUS_CHOICES = (
+        ('AVAILABLE', 'Available'),
+        ('SOLD', 'Sold'),
+        ('DEFECTIVE', 'Defective'),
+    )
+    VOLTAGE_CHOICES = (
+        ('48V', '48V'),
+        ('60V', '60V'),
+        ('72V', '72V'),
+    )
+    name = models.CharField(max_length=100)
+    serial_number = models.CharField(max_length=100, unique=True)
+    charger_type = models.CharField(max_length=50, default='Standard Fast Charger')
+    voltage = models.CharField(max_length=20, choices=VOLTAGE_CHOICES, default='60V')
+    
+    # Cost price and 2 different selling prices (with scooter 1st charger is 0, without scooter retail)
+    cost_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    price_with_scooter = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0.00,
+        help_text="Price with scooter (usually 0.00 for 1st bundled charger)"
+    )
+    price_without_scooter = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0.00,
+        help_text="Standard retail price when bought standalone"
+    )
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='AVAILABLE')
+    purchase_date = models.DateField(auto_now_add=True)
+    supplier_details = models.TextField(blank=True, null=True)
+    misc = models.JSONField(default=dict, blank=True, null=True)
 
     def __str__(self):
-        return f"{self.item_type} - {self.serial_number}"
+        return f"{self.name} [{self.serial_number}] ({self.voltage})"
+
+
+class SparePart(SoftDeleteModel):
+    STATUS_CHOICES = (
+        ('AVAILABLE', 'Available'),
+        ('OUT_OF_STOCK', 'Out of Stock'),
+    )
+    name = models.CharField(max_length=150)
+    part_number = models.CharField(max_length=100, unique=True)
+    category = models.CharField(max_length=50, blank=True, default='General Spare')
+    quantity = models.PositiveIntegerField(default=1)
+    cost_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    selling_price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='AVAILABLE')
+    purchase_date = models.DateField(auto_now_add=True)
+    supplier_details = models.TextField(blank=True, null=True)
+    misc = models.JSONField(default=dict, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.part_number}) - Qty: {self.quantity}"

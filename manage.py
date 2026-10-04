@@ -16,16 +16,16 @@ def main():
             "forget to activate a virtual environment?"
         ) from exc
 
-    if len(sys.argv) > 1 and sys.argv[1] == 'runserver' and os.environ.get('RUN_MAIN') != 'true':
-        import django
-        django.setup()
-        print("Running automatic database migrations (makemigrations & migrate)...")
-        try:
-            call_command('makemigrations')
-            call_command('migrate')
-            print("Database migrations complete!")
-        except Exception as e:
-            print(f"Automatic migration warning: {e}")
+    # if len(sys.argv) > 1 and sys.argv[1] == 'runserver' and os.environ.get('RUN_MAIN') != 'true':
+    #     import django
+    #     django.setup()
+    #     print("Running automatic database migrations (makemigrations & migrate)...")
+    #     try:
+    #         call_command('makemigrations')
+    #         call_command('migrate')
+    #         print("Database migrations complete!")
+    #     except Exception as e:
+    #         print(f"Automatic migration warning: {e}")
 
     execute_from_command_line(sys.argv)
 

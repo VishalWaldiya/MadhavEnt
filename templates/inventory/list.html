@@ -1,161 +1,491 @@
 {% extends 'base.html' %}
 
-{% block title %}Inventory - EV Stock Manager{% endblock %}
+{% block title %}Inventory Management - EV Stock Manager{% endblock %}
+
+{% block extra_head %}
+<style>
+.tab-nav {
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 2px solid #334155;
+    margin-bottom: 1.5rem;
+}
+.tab-link {
+    padding: 0.75rem 1.25rem;
+    font-weight: 600;
+    color: #94a3b8;
+    text-decoration: none;
+    border-bottom: 3px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+.tab-link:hover {
+    color: #f1f5f9;
+}
+.tab-link.active {
+    color: #38bdf8;
+    border-bottom-color: #38bdf8;
+    background: rgba(56, 189, 248, 0.05);
+    border-radius: 8px 8px 0 0;
+}
+.tab-badge {
+    background: #334155;
+    color: #cbd5e1;
+    font-size: 0.75rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 10px;
+}
+.tab-link.active .tab-badge {
+    background: rgba(56, 189, 248, 0.2);
+    color: #38bdf8;
+}
+.info-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    font-size: 0.75rem;
+    cursor: pointer;
+    font-weight: bold;
+    position: relative;
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    vertical-align: middle;
+}
+.info-icon:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+.tooltip {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    bottom: 130%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    line-height: 1.35;
+    font-weight: normal;
+    white-space: normal;
+    width: 240px;
+    border: 1px solid #475569;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    z-index: 100;
+    transition: opacity 0.2s, visibility 0.2s;
+    text-align: left;
+}
+.tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #475569 transparent transparent transparent;
+}
+.badge-status {
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.status-available { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+.status-sold { background: rgba(100, 116, 139, 0.2); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.4); }
+.status-danger { background: rgba(244, 63, 94, 0.15); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.4); }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="header">
+<div class="header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
     <div>
-        <h1>Inventory Management</h1>
-        <p style="color: var(--text-muted); margin-top: 0.5rem;">Manage scooters, batteries, and spare parts.</p>
+        <h1 style="margin: 0; font-size: 1.8rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span>📦</span> 4-Category Inventory Hub
+        </h1>
+        <p style="color: var(--text-muted); margin: 0.35rem 0 0;">
+            Separated tables for Scooters, Batteries, Chargers, and Spare Parts with Cost Price & Dual Selling Prices.
+        </p>
     </div>
-    <div>
-        <a href="{% url 'add_scooter_model' %}" class="btn" style="background: transparent; border: 1px solid var(--primary); color: var(--primary); margin-right: 1rem;">+ New Scooter Model</a>
-        <a href="{% url 'add_stock_item' %}" class="btn">+ Add Stock Item</a>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'add_scooter_model' %}" class="btn" style="background: transparent; border: 1px solid #38bdf8; color: #38bdf8; font-size: 0.85rem;">+ New Model</a>
+        <a href="{% url 'add_scooter' %}" class="btn" style="background: #0284c7; font-size: 0.85rem;">+ Add Scooter</a>
+        <a href="{% url 'add_battery' %}" class="btn" style="background: #059669; font-size: 0.85rem;">+ Add Battery</a>
+        <a href="{% url 'add_charger' %}" class="btn" style="background: #7c3aed; font-size: 0.85rem;">+ Add Charger</a>
+        <a href="{% url 'add_spare_part' %}" class="btn" style="background: #d97706; font-size: 0.85rem;">+ Add Spare</a>
     </div>
 </div>
 
-<div class="card">
-    <div class="header" style="margin-bottom: 1rem;">
-        <h2>Incoming Stock Items</h2>
-    </div>
-    <form id="bulk-form-stockitem" action="{% url 'bulk_soft_delete' 'stockitem' %}" method="post">
-        {% csrf_token %}
-        <div class="table-responsive">
-        <table>
-            <thead>
-                <tr>
-                    {% if request.user.role == 'ADMIN' %}
-                    <th style="width: 40px;"><input type="checkbox" onchange="toggleSelectAll(this, 'bulk-form-stockitem')" title="Select All"></th>
-                    {% endif %}
-                    <th>Type</th>
-                    <th>Model/Name</th>
-                    <th>Serial Number</th>
-                    <th>Status</th>
-                    <th>Purchase Date</th>
-                    {% if request.user.role == 'ADMIN' %}
-                    <th>Action</th>
-                    {% endif %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in items %}
-                <tr>
-                    {% if request.user.role == 'ADMIN' %}
-                    <td><input type="checkbox" name="selected_ids" value="{{ item.id }}" onchange="updateBulkBar('bulk-form-stockitem')"></td>
-                    {% endif %}
-                    <td>{{ item.get_item_type_display }}</td>
-                    <td>
-                        {% if item.scooter_model %}
-                            {{ item.scooter_model.name }}
-                        {% else %}
-                            {{ item.name }}
-                        {% endif %}
-                    </td>
-                    <td style="font-family: monospace;">{{ item.serial_number }}</td>
-                    <td>
-                        {% if item.status == 'AVAILABLE' %}
-                            <span style="color: var(--success); font-weight: 600;">AVAILABLE</span>
-                        {% elif item.status == 'SOLD' %}
-                            <span style="color: var(--text-muted); font-weight: 600;">SOLD</span>
-                        {% else %}
-                            <span style="color: var(--danger); font-weight: 600;">{{ item.status }}</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ item.purchase_date }}</td>
-                    {% if request.user.role == 'ADMIN' %}
-                    <td>
-                        <form action="{% url 'delete_stock_item' item.id %}" method="post" style="margin: 0;" onsubmit="return confirm('Move stock item {{ item.serial_number }} to Recycle Bin?');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn" style="background: var(--danger); padding: 0.25rem 0.6rem; font-size: 0.75rem;">Delete</button>
-                        </form>
-                    </td>
-                    {% endif %}
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted)">
-                        No stock items available. Add stock items using the button above.
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        </div>
-
-        {% if request.user.role == 'ADMIN' %}
-        <div id="bulk-bar-bulk-form-stockitem" style="display: none; background: var(--card-bg); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-            <span style="color: var(--text-color); font-weight: 500;">Selected <strong id="bulk-count-bulk-form-stockitem" style="color: var(--primary);">0</strong> item(s)</span>
-            <button type="submit" class="btn" style="background: var(--danger); font-size: 0.85rem; padding: 0.4rem 1rem;">
-                🗑️ Soft Delete Selected Items
-            </button>
-        </div>
-        {% endif %}
-    </form>
+<!-- Category Tabs -->
+<div class="tab-nav">
+    <a href="?tab=scooters" class="tab-link {% if tab == 'scooters' %}active{% endif %}">
+        🛵 Scooters & Models <span class="tab-badge">{{ scooters|length }} units / {{ scooter_models|length }} models</span>
+    </a>
+    <a href="?tab=batteries" class="tab-link {% if tab == 'batteries' %}active{% endif %}">
+        🔋 Batteries Table <span class="tab-badge">{{ batteries|length }}</span>
+    </a>
+    <a href="?tab=chargers" class="tab-link {% if tab == 'chargers' %}active{% endif %}">
+        🔌 Chargers Table <span class="tab-badge">{{ chargers|length }}</span>
+    </a>
+    <a href="?tab=spares" class="tab-link {% if tab == 'spares' %}active{% endif %}">
+        ⚙️ Spare Parts Table <span class="tab-badge">{{ spare_parts|length }}</span>
+    </a>
 </div>
 
-<div class="card" style="margin-top: 2rem;">
-    <div class="header" style="margin-bottom: 1rem;">
-        <h2>Registered Scooter Models</h2>
+<!-- ================= 1. SCOOTERS & MODELS TAB ================= -->
+{% if tab == 'scooters' %}
+<!-- Scooter Models Section -->
+<div class="card" style="margin-bottom: 2rem;">
+    <div class="header" style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="font-size: 1.2rem; margin: 0; color: #38bdf8; display: flex; align-items: center; gap: 0.5rem;">
+            Registered Scooter Models
+            <span class="info-icon">i
+                <span class="tooltip">Scooter catalog definitions with dynamic battery configuration range specifications.</span>
+            </span>
+        </h2>
+        <a href="{% url 'add_scooter_model' %}" class="btn" style="font-size: 0.8rem; padding: 0.35rem 0.8rem; background: transparent; border: 1px solid #38bdf8; color: #38bdf8;">+ Add Model</a>
     </div>
-    <form id="bulk-form-scootermodel" action="{% url 'bulk_soft_delete' 'scootermodel' %}" method="post">
-        {% csrf_token %}
-        <div class="table-responsive">
+    <div class="table-responsive">
         <table>
             <thead>
                 <tr>
-                    {% if request.user.role == 'ADMIN' %}
-                    <th style="width: 40px;"><input type="checkbox" onchange="toggleSelectAll(this, 'bulk-form-scootermodel')" title="Select All"></th>
-                    {% endif %}
                     <th>Model Name</th>
-                    <th>Range (km)</th>
-                    <th>Power (Watts)</th>
-                    <th>Charging Time (hrs)</th>
-                    <th>Last Price</th>
-                    {% if request.user.role == 'ADMIN' %}
-                    <th>Action</th>
-                    {% endif %}
+                    <th>Power</th>
+                    <th>Charge Time</th>
+                    <th>Cost Price</th>
+                    <th>Base Selling Price</th>
+                    <th>Battery Range Matrix</th>
+                    {% if request.user.role == 'ADMIN' %}<th>Action</th>{% endif %}
                 </tr>
             </thead>
             <tbody>
-                {% for scooter in scooters %}
+                {% for m in scooter_models %}
                 <tr>
-                    {% if request.user.role == 'ADMIN' %}
-                    <td><input type="checkbox" name="selected_ids" value="{{ scooter.id }}" onchange="updateBulkBar('bulk-form-scootermodel')"></td>
-                    {% endif %}
-                    <td style="font-weight: 600;">{{ scooter.name }}</td>
-                    <td>{{ scooter.range_km }} km</td>
-                    <td>{{ scooter.watts }} W</td>
-                    <td>{{ scooter.charging_time }} h</td>
-                    <td>₹{{ scooter.last_price }}</td>
+                    <td style="font-weight: 600; color: white;">{{ m.name }}</td>
+                    <td>{{ m.watts }} W</td>
+                    <td>{{ m.charging_time }} hrs</td>
+                    <td style="color: #94a3b8;">₹{{ m.cost_price|default:"0.00" }}</td>
+                    <td style="font-weight: 600; color: #38bdf8;">₹{{ m.selling_price }}</td>
+                    <td style="font-size: 0.82rem;">
+                        <span style="color: #34d399;">60V Li: {{ m.battery_lithium_60w_range }}km</span> | 
+                        <span style="color: #60a5fa;">72V Li: {{ m.battery_lithium_72w_range }}km</span><br>
+                        <span style="color: #fbbf24;">60V LA: {{ m.battery_lead_60w_range }}km</span> | 
+                        <span style="color: #f87171;">72V LA: {{ m.battery_lead_72w_range }}km</span>
+                    </td>
                     {% if request.user.role == 'ADMIN' %}
                     <td>
-                        <form action="{% url 'delete_scooter_model' scooter.id %}" method="post" style="margin: 0;" onsubmit="return confirm('Move scooter model {{ scooter.name }} to Recycle Bin?');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn" style="background: var(--danger); padding: 0.25rem 0.6rem; font-size: 0.75rem;">Delete</button>
-                        </form>
+                        <div style="display: flex; gap: 0.4rem; align-items: center;">
+                            <a href="{% url 'edit_scooter_model' m.id %}" class="btn" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); padding: 0.25rem 0.6rem; font-size: 0.75rem; text-decoration: none;">✏️ Edit</a>
+                            <form action="{% url 'delete_scooter_model' m.id %}" method="post" style="margin: 0;" onsubmit="return confirm('Move scooter model {{ m.name }} to Recycle Bin?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn" style="background: var(--danger); padding: 0.25rem 0.6rem; font-size: 0.75rem;">Delete</button>
+                            </form>
+                        </div>
                     </td>
                     {% endif %}
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted)">
-                        No scooter models registered.
-                    </td>
+                    <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">No scooter models registered.</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
-        </div>
-
-        {% if request.user.role == 'ADMIN' %}
-        <div id="bulk-bar-bulk-form-scootermodel" style="display: none; background: var(--card-bg); border: 1px solid var(--border-color); padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-            <span style="color: var(--text-color); font-weight: 500;">Selected <strong id="bulk-count-bulk-form-scootermodel" style="color: var(--primary);">0</strong> model(s)</span>
-            <button type="submit" class="btn" style="background: var(--danger); font-size: 0.85rem; padding: 0.4rem 1rem;">
-                🗑️ Soft Delete Selected Models
-            </button>
-        </div>
-        {% endif %}
-    </form>
+    </div>
 </div>
+
+<!-- Physical Scooters Stock Section -->
+<div class="card">
+    <div class="header" style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="font-size: 1.2rem; margin: 0; color: #38bdf8; display: flex; align-items: center; gap: 0.5rem;">
+            Physical Scooters in Stock (Chassis Units)
+            <span class="info-icon">i
+                <span class="tooltip">Individual vehicle inventory units tracked by unique chassis number and motor number.</span>
+            </span>
+        </h2>
+        <a href="{% url 'add_scooter' %}" class="btn" style="font-size: 0.8rem; padding: 0.35rem 0.8rem; background: #0284c7;">+ Add Scooter Chassis</a>
+    </div>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Chassis Number</th>
+                    <th>Model</th>
+                    <th>Motor Number</th>
+                    <th>Color</th>
+                    <th>Cost Price</th>
+                    <th>Selling Price</th>
+                    <th>Status</th>
+                    {% if request.user.role == 'ADMIN' %}<th>Action</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for sc in scooters %}
+                <tr>
+                    <td style="font-family: monospace; font-weight: 600; color: white;">{{ sc.chassis_number }}</td>
+                    <td>{{ sc.scooter_model.name }}</td>
+                    <td style="font-family: monospace; color: #94a3b8;">{{ sc.motor_number|default:"-" }}</td>
+                    <td>{{ sc.color }}</td>
+                    <td style="color: #94a3b8;">₹{{ sc.cost_price }}</td>
+                    <td style="font-weight: 600; color: #38bdf8;">₹{{ sc.selling_price }}</td>
+                    <td>
+                        {% if sc.status == 'AVAILABLE' %}
+                        <span class="badge-status status-available">AVAILABLE</span>
+                        {% elif sc.status == 'SOLD' %}
+                        <span class="badge-status status-sold">SOLD</span>
+                        {% else %}
+                        <span class="badge-status status-danger">{{ sc.status }}</span>
+                        {% endif %}
+                    </td>
+                    {% if request.user.role == 'ADMIN' %}
+                    <td>
+                        <div style="display: flex; gap: 0.4rem; align-items: center;">
+                            <a href="{% url 'edit_scooter' sc.id %}" class="btn" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); padding: 0.25rem 0.6rem; font-size: 0.75rem; text-decoration: none;">✏️ Edit</a>
+                            <form action="{% url 'delete_scooter' sc.id %}" method="post" style="margin: 0;" onsubmit="return confirm('Move scooter {{ sc.chassis_number }} to Recycle Bin?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn" style="background: var(--danger); padding: 0.25rem 0.6rem; font-size: 0.75rem;">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);">No scooter units in stock.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- ================= 2. BATTERIES TAB ================= -->
+{% if tab == 'batteries' %}
+<div class="card">
+    <div class="header" style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2 style="font-size: 1.2rem; margin: 0; color: #34d399; display: flex; align-items: center; gap: 0.5rem;">
+                Battery Inventory Table
+                <span class="info-icon">i
+                    <span class="tooltip">Features dual selling prices: 'With Scooter' (discounted OEM bundled price) vs 'Without Scooter' (standalone retail price).</span>
+                </span>
+            </h2>
+            <p style="color: var(--text-muted); font-size: 0.8rem; margin: 0.25rem 0 0;">
+                All batteries feature dual pricing: Bundled rate when sold with a vehicle vs standalone rate.
+            </p>
+        </div>
+        <a href="{% url 'add_battery' %}" class="btn" style="background: #059669; font-size: 0.85rem;">+ Add Battery</a>
+    </div>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Serial Number</th>
+                    <th>Battery Model / Name</th>
+                    <th>Type & Specs</th>
+                    <th>Cost Price</th>
+                    <th style="color: #34d399;">Selling Price (With Scooter)</th>
+                    <th style="color: #38bdf8;">Selling Price (Without Scooter)</th>
+                    <th>Status</th>
+                    {% if request.user.role == 'ADMIN' %}<th>Action</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in batteries %}
+                <tr>
+                    <td style="font-family: monospace; font-weight: 600; color: white;">{{ b.serial_number }}</td>
+                    <td style="font-weight: 500;">{{ b.name }}</td>
+                    <td>
+                        <span style="font-size: 0.8rem; color: #94a3b8;">{{ b.get_battery_type_display }} ({{ b.voltage }} {{ b.capacity_ah }})</span>
+                    </td>
+                    <td style="color: #94a3b8;">₹{{ b.cost_price }}</td>
+                    <td style="font-weight: 600; color: #34d399;">₹{{ b.price_with_scooter }}</td>
+                    <td style="font-weight: 600; color: #38bdf8;">₹{{ b.price_without_scooter }}</td>
+                    <td>
+                        {% if b.status == 'AVAILABLE' %}
+                        <span class="badge-status status-available">AVAILABLE</span>
+                        {% elif b.status == 'SOLD' %}
+                        <span class="badge-status status-sold">SOLD</span>
+                        {% else %}
+                        <span class="badge-status status-danger">{{ b.status }}</span>
+                        {% endif %}
+                    </td>
+                    {% if request.user.role == 'ADMIN' %}
+                    <td>
+                        <div style="display: flex; gap: 0.4rem; align-items: center;">
+                            <a href="{% url 'edit_battery' b.id %}" class="btn" style="background: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.4); padding: 0.25rem 0.6rem; font-size: 0.75rem; text-decoration: none;">✏️ Edit</a>
+                            <form action="{% url 'delete_battery' b.id %}" method="post" style="margin: 0;" onsubmit="return confirm('Move battery {{ b.serial_number }} to Recycle Bin?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn" style="background: var(--danger); padding: 0.25rem 0.6rem; font-size: 0.75rem;">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);">No batteries in stock.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- ================= 3. CHARGERS TAB ================= -->
+{% if tab == 'chargers' %}
+<div class="card">
+    <div class="header" style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2 style="font-size: 1.2rem; margin: 0; color: #c084fc; display: flex; align-items: center; gap: 0.5rem;">
+                Charger Inventory Table
+                <span class="info-icon">i
+                    <span class="tooltip">1st charger bundled with a scooter is complimentary (₹0.00). Extra or standalone chargers are sold at standard retail price.</span>
+                </span>
+            </h2>
+            <p style="color: var(--text-muted); font-size: 0.8rem; margin: 0.25rem 0 0;">
+                1st Charger is ₹0.00 when bundled with scooter. Standalone sales use retail price.
+            </p>
+        </div>
+        <a href="{% url 'add_charger' %}" class="btn" style="background: #7c3aed; font-size: 0.85rem;">+ Add Charger</a>
+    </div>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Serial Number</th>
+                    <th>Charger Model</th>
+                    <th>Type & Voltage</th>
+                    <th>Cost Price</th>
+                    <th style="color: #c084fc;">Price (With Scooter)</th>
+                    <th style="color: #38bdf8;">Price (Without Scooter)</th>
+                    <th>Status</th>
+                    {% if request.user.role == 'ADMIN' %}<th>Action</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in chargers %}
+                <tr>
+                    <td style="font-family: monospace; font-weight: 600; color: white;">{{ c.serial_number }}</td>
+                    <td style="font-weight: 500;">{{ c.name }}</td>
+                    <td>{{ c.charger_type }} ({{ c.voltage }})</td>
+                    <td style="color: #94a3b8;">₹{{ c.cost_price }}</td>
+                    <td style="font-weight: 600; color: #c084fc;">
+                        {% if c.price_with_scooter == 0 %}₹0.00 (FREE){% else %}₹{{ c.price_with_scooter }}{% endif %}
+                    </td>
+                    <td style="font-weight: 600; color: #38bdf8;">₹{{ c.price_without_scooter }}</td>
+                    <td>
+                        {% if c.status == 'AVAILABLE' %}
+                        <span class="badge-status status-available">AVAILABLE</span>
+                        {% elif c.status == 'SOLD' %}
+                        <span class="badge-status status-sold">SOLD</span>
+                        {% else %}
+                        <span class="badge-status status-danger">{{ c.status }}</span>
+                        {% endif %}
+                    </td>
+                    {% if request.user.role == 'ADMIN' %}
+                    <td>
+                        <div style="display: flex; gap: 0.4rem; align-items: center;">
+                            <a href="{% url 'edit_charger' c.id %}" class="btn" style="background: rgba(192, 132, 252, 0.15); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.4); padding: 0.25rem 0.6rem; font-size: 0.75rem; text-decoration: none;">✏️ Edit</a>
+                            <form action="{% url 'delete_charger' c.id %}" method="post" style="margin: 0;" onsubmit="return confirm('Move charger {{ c.serial_number }} to Recycle Bin?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn" style="background: var(--danger); padding: 0.25rem 0.6rem; font-size: 0.75rem;">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);">No chargers in stock.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- ================= 4. SPARE PARTS TAB ================= -->
+{% if tab == 'spares' %}
+<div class="card">
+    <div class="header" style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2 style="font-size: 1.2rem; margin: 0; color: #fbbf24; display: flex; align-items: center; gap: 0.5rem;">
+                Spare Parts & Accessories Table
+                <span class="info-icon">i
+                    <span class="tooltip">Accessories, replacement tires, brake pads, lights, and floor mats with quantity stock tracking.</span>
+                </span>
+            </h2>
+            <p style="color: var(--text-muted); font-size: 0.8rem; margin: 0.25rem 0 0;">
+                Track stock count, cost price, and selling price for replacement parts and accessories.
+            </p>
+        </div>
+        <a href="{% url 'add_spare_part' %}" class="btn" style="background: #d97706; font-size: 0.85rem;">+ Add Spare Part</a>
+    </div>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Part Number</th>
+                    <th>Part Name</th>
+                    <th>Category</th>
+                    <th>In-Stock Quantity</th>
+                    <th>Cost Price</th>
+                    <th>Selling Price</th>
+                    <th>Status</th>
+                    {% if request.user.role == 'ADMIN' %}<th>Action</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for sp in spare_parts %}
+                <tr>
+                    <td style="font-family: monospace; font-weight: 600; color: white;">{{ sp.part_number }}</td>
+                    <td style="font-weight: 500;">{{ sp.name }}</td>
+                    <td><span style="font-size: 0.8rem; color: #94a3b8;">{{ sp.category }}</span></td>
+                    <td style="font-weight: 600; color: {% if sp.quantity < 3 %}#f43f5e{% else %}white{% endif %};">
+                        {{ sp.quantity }} units
+                    </td>
+                    <td style="color: #94a3b8;">₹{{ sp.cost_price }}</td>
+                    <td style="font-weight: 600; color: #fbbf24;">₹{{ sp.selling_price }}</td>
+                    <td>
+                        {% if sp.quantity > 0 and sp.status == 'AVAILABLE' %}
+                        <span class="badge-status status-available">IN STOCK</span>
+                        {% else %}
+                        <span class="badge-status status-danger">OUT OF STOCK</span>
+                        {% endif %}
+                    </td>
+                    {% if request.user.role == 'ADMIN' %}
+                    <td>
+                        <div style="display: flex; gap: 0.4rem; align-items: center;">
+                            <a href="{% url 'edit_spare_part' sp.id %}" class="btn" style="background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.4); padding: 0.25rem 0.6rem; font-size: 0.75rem; text-decoration: none;">✏️ Edit</a>
+                            <form action="{% url 'delete_spare_part' sp.id %}" method="post" style="margin: 0;" onsubmit="return confirm('Move spare part {{ sp.name }} to Recycle Bin?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn" style="background: var(--danger); padding: 0.25rem 0.6rem; font-size: 0.75rem;">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);">No spare parts in stock.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
 
 {% endblock %}

@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Charger - EV Stock Manager{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+    <div class="header" style="border-bottom: 1px solid #334155; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h1 style="margin: 0; font-size: 1.5rem; color: #c084fc; display: flex; align-items: center; gap: 0.5rem;">
+            <span>🔌</span> Add Charger to Stock
+        </h1>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0.25rem 0 0;">
+            1st Charger is bundled free (₹0.00) with a scooter; extra/standalone sales use the retail price.
+        </p>
+    </div>
+
+    <form method="post" action="{% url 'add_charger' %}">
+        {% csrf_token %}
+        <div class="grid" style="grid-template-columns: 1.5fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Charger Model / Name *</label>
+                <input type="text" name="name" required placeholder="e.g. Fast Charger 60V 5A Smart" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Serial / Barcode *</label>
+                <input type="text" name="serial_number" required placeholder="e.g. CHG-60V-201" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-family: monospace;">
+            </div>
+        </div>
+
+        <div class="grid" style="grid-template-columns: 1.5fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Charger Specification / Type</label>
+                <input type="text" name="charger_type" value="Standard Fast Charger" placeholder="e.g. Rapid Smart Charger" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Voltage</label>
+                <select name="voltage" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                    <option value="60V">60V</option>
+                    <option value="72V">72V</option>
+                    <option value="48V">48V</option>
+                </select>
+            </div>
+        </div>
+
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; border-radius: 10px; padding: 1.25rem; margin-bottom: 1.5rem;">
+            <h4 style="margin: 0 0 0.5rem; color: #38bdf8; font-size: 0.95rem;">
+                💰 Pricing Tiers (₹)
+            </h4>
+            <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                <div>
+                    <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.8rem;">Unit Cost Price (₹)</label>
+                    <input type="number" step="0.01" name="cost_price" placeholder="1400.00" style="width: 100%; padding: 0.65rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.4rem; color: #c084fc; font-size: 0.8rem;">With Scooter (₹) *</label>
+                    <input type="number" step="0.01" name="price_with_scooter" value="0.00" required style="width: 100%; padding: 0.65rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #c084fc; font-weight: 600;">
+                    <span style="font-size: 0.7rem; color: #94a3b8;">1st charger is ₹0.00</span>
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 0.4rem; color: #38bdf8; font-size: 0.8rem;">Standalone Retail (₹) *</label>
+                    <input type="number" step="0.01" name="price_without_scooter" required placeholder="2499.00" style="width: 100%; padding: 0.65rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #38bdf8; font-weight: 600;">
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem;">Supplier / Batch Information</label>
+            <textarea name="supplier_details" rows="2" placeholder="OEM batch no., warranty details..." style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white;"></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+            <a href="{% url 'inventory_list' %}?tab=chargers" class="btn" style="background: transparent; border: 1px solid #64748b; color: #94a3b8;">Cancel</a>
+            <button type="submit" class="btn" style="background: #7c3aed;">Add Charger to Stock</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
